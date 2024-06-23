@@ -1,0 +1,1371 @@
+---
+title: "Data Description/Processing - Ref_ranges_AAU_2 - 040624"
+format: 
+  html:
+    fig-width: 7
+    fig-height: 5
+    df-print: paged
+editor: visual
+date: now
+execute: 
+  keep-md: false
+  comment: NA
+  message: false
+  warning: false
+  echo: false
+  eval: true
+  cache: false
+  cache.lazy: false
+  dpi: 300
+  tidy: styler
+editor_options: 
+  chunk_output_type: console
+mainfont: Helvetica-Oblique
+monofont: FiraCode-Regular
+fontsize: 15px
+---
+
+```{r}
+load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")             
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black") 
+```
+
+```{r}
+library(tidyverse)
+library(Hmisc) # maskings
+library(qreport) # maskings   
+```
+
+Data Source: [Ref ranges - AAU file](https://docs.google.com/spreadsheets/d/1XekdYPsdbTYUpjjL-JhD5LsTvjqLsy3T/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true)
+
+Data Processing Steps:
+
+Q&A and manual data cleaning/clarity changes on the xlsx source file:
+
+id 40217 and 39683 have strange weight values. A: Take the average of these values.
+
+Q: On the variables `aerobics_times_per_week` and `resistance_times_per_week`, some ids have a check mark and two ids have strange values. What is the actual meaning? A: It means that in the survey form the person just said that they are exercising without specifying how many times per week. I have coded such cases with the value of 100 so that column remains of numeric type. However I change this, see here a bit further below. Also if the value was 3-4 meaning 3 or 4 times per weeks, I converted this to 3.5. Similarly for other ranges i.e. 1-2 = 1.5
+
+Q: What is the meaning of `aerobics_duration_min`? There are 4 much larger values than the rest. A: This is the duration that the person exercises per time/exercise session.
+
+For ids: 41685 1210 39817 39517 changes of column `aerobics_duration_min` from 60120 to 90 (i.e. average) from 3040 to 35 from 4550 to 47.5 from 1520 to 17.5
+
+BMI is weight/height\^2 kg_per_m2, no need to be calculated in the excel source file as it is calculated after the data are imported. Also deleted empty columns in between non-empty ones. Note also the column names and the structure rearrangement on the exercise related columns. From the column name `Glycine μmol/g crea` removed the "crea". Changed the name of `Glutamic Acid μmol/g` to `Glutamate μmol/g`. For the `aerobics_times_per_week` column there are 2 values of 45353 45385 of ids 25983 44856 which I coded as 100 i.e. they exercise but without a specific number.
+
+With regards to the 100 valued cases on the exercise related columns: If `aerobics_times_per_week` is checked but the corresponding `aerobics_duration_min` column had a missing value i.e. no exercise duration, then the `aerobics_times_per_week` value is 0 i.e. no exercise. For the similar cases but with `aerobics_duration_min` having a non-zero value, then the value is checked manually and an expected value is chosen i.e. 30-45 min per week probably means once a week the person is exercising. Similarly for the `resistance_times_per_week` / `resistance_duration_min` pair of columns.
+
+A new columns named `chronic_disease_v2` was created that is based on the `chronic_disease` column. It is a recoded version of the `chronic_disease` column having more general categories of disease in order to ease interpretation and to increase the sample size for each disease category. Information was also utilized from the `meds` column for cases where the `chronic_disease` value was missing but the `meds` value was not. Medicine names and their relation to a disease type were checked via search engine.
+
+`chronic_disease_v2` is additionally lumped by frequency into 8 levels into a new column named `chronic_disease_v3`.
+
+The column `supplements` has not been yet recoded as it contains a variety of vitamins and proteins. If desired, the column could be recoded towards a more specific use case i.e. effect of magnesium.
+
+For later runs, perhaps 2 more changes can be made in the excel source file:
+
+-   Remove the `Creatinine` column since not needed.
+-   Remove the mark 'μmol/g' from the amino acid column names.
+
+The above steps result in the data table output that can be found [here](https://docs.google.com/spreadsheets/d/1I5IUbS86slfxIObDiZYoIhut9WrKXKpE/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true) and which is then used to proceed with the below changes and the modeling (reference interval construction).
+
+Once the data is imported, the following flag/indicator (Yes/No) variables are created: `chronic_disease_flag`, `meds_flag` and `supplements_flag.`
+
+Missing values are replaced by zeroes on all of the amino acids and on these variables: `aerobics_times_per_week`, `aerobics_duration_min`, `resistance_times_per_week` and `resistance_duration_min.` These latter 4 variables are removed after being merged to the 2 following in order to create general exercise activity variables: `aerobics_activity` = `aerobics_times_per_week` \* `aerobics_duration_min`\
+`resistance_activity` = `resistance_times_per_week` \* `resistance_duration_min`
+
+`aerobics_activity` and `resistance_activity` are log transformed.
+
+The final data set that will be used for modeling and exploratory data analysis is shown below, together with its statistical descriptions.
+
+```{r}
+Ref_ranges_AAU_2 |> mutate(across(where(is.double), ~ round(., 2)))    
+# skimr::skim(Ref_ranges_AAU)
+```
+
+```{r}
+# function to deal with 0 values in the amino acids i.e. not detected concentration
+f_log <- function(x) { # x is a vector # take log only on non zeroes, leave rest as is
+  idx <- which(x != 0)
+  x[idx] <- log(x[idx])
+  x
+}    
+d <- describe(Ref_ranges_AAU_2, 
+              trans= list(aerobics_activity = list('log', f_log, exp), 
+                          resistance_activity = list('log', f_log, exp), 
+                          Glycine=list('log', f_log, exp),
+                          Alanine=list('log', f_log, exp),
+                          Valine=list('log', f_log, exp),
+                          Cysteine=list('log', f_log, exp),
+                          Taurine=list('log', f_log, exp),
+                          Isoleucine=list('log', f_log, exp),
+                          Leucine=list('log', f_log, exp),
+                          Glutamine=list('log', f_log, exp),
+                          Glutamate=list('log', f_log, exp),
+                          Methionine=list('log', f_log, exp),
+                          Arginine=list('log', f_log, exp) 
+                          ))      
+sparkline::sparkline(0)   # load sparkline javascript dependencies       
+```
+
+```{r, eval=FALSE}
+#| column: screen
+
+# https://quarto.org/docs/authoring/article-layout.html#options-reference/
+# options(prType='html')
+qreport::maketabs(print(d, 'both'))       
+
+# This chunk is only run once in order to get the html code and paste it below i.e.
+# copy html produced from the website and paste below, also putting this in the beginning:
+# ::: {.panel-tabset .column-screen}
+# Rerun if changes in data. 
+# Then this chunk is not needed i.e. eval=FALSE, for the final output. 
+```
+
+::: {.panel-tabset .column-screen}
+## Continuous
+
+```{=html}
+<div id="iwfiekfmib" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#iwfiekfmib table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#iwfiekfmib thead, #iwfiekfmib tbody, #iwfiekfmib tfoot, #iwfiekfmib tr, #iwfiekfmib td, #iwfiekfmib th {
+  border-style: none;
+}
+
+#iwfiekfmib p {
+  margin: 0;
+  padding: 0;
+}
+
+#iwfiekfmib .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#iwfiekfmib .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#iwfiekfmib .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#iwfiekfmib .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#iwfiekfmib .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#iwfiekfmib .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#iwfiekfmib .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#iwfiekfmib .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#iwfiekfmib .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#iwfiekfmib .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#iwfiekfmib .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#iwfiekfmib .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#iwfiekfmib .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#iwfiekfmib .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#iwfiekfmib .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iwfiekfmib .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#iwfiekfmib .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#iwfiekfmib .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#iwfiekfmib .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iwfiekfmib .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#iwfiekfmib .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iwfiekfmib .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#iwfiekfmib .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iwfiekfmib .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iwfiekfmib .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iwfiekfmib .gt_left {
+  text-align: left;
+}
+
+#iwfiekfmib .gt_center {
+  text-align: center;
+}
+
+#iwfiekfmib .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#iwfiekfmib .gt_font_normal {
+  font-weight: normal;
+}
+
+#iwfiekfmib .gt_font_bold {
+  font-weight: bold;
+}
+
+#iwfiekfmib .gt_font_italic {
+  font-style: italic;
+}
+
+#iwfiekfmib .gt_super {
+  font-size: 65%;
+}
+
+#iwfiekfmib .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#iwfiekfmib .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#iwfiekfmib .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#iwfiekfmib .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#iwfiekfmib .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#iwfiekfmib .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#iwfiekfmib .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table" style="table-layout: fixed;" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <colgroup>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col/>
+    <col style="width:220px;"/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr class="gt_heading">
+      <td colspan="11" class="gt_heading gt_title gt_font_normal" style><strong><code>Ref_ranges_AAU_2</code> Descriptives</strong></td>
+    </tr>
+    <tr class="gt_heading">
+      <td colspan="11" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>17 Continous Variables of 27 Variables, 308 Observations</td>
+    </tr>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Variable">Variable</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Label">Label</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Units">Units</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="n">n</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Missing">Missing</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Distinct">Distinct</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Info">Info</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Mean">Mean</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Gini &lt;span style=&quot;text-decoration: overline&quot;&gt;|Δ|&lt;/span&gt;">Gini <span style="text-decoration: overline">|Δ|</span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id=" "> </th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="Quantiles&lt;br&gt;&lt;font size=&quot;1&quot;&gt; .05 &lt;/font&gt;&lt;font size=&quot;2&quot;&gt; .10 &lt;/font&gt;&lt;font size=&quot;3&quot;&gt; .25 &lt;/font&gt;&lt;font size=&quot;4&quot;&gt;&lt;strong&gt; .50 &lt;/strong&gt;&lt;/font&gt;&lt;font size=&quot;3&quot;&gt; .75 &lt;/font&gt;&lt;font size=&quot;2&quot;&gt; .90 &lt;/font&gt;&lt;font size=&quot;1&quot;&gt; .95 &lt;/font&gt;">Quantiles<br><font size="1"> .05 </font><font size="2"> .10 </font><font size="3"> .25 </font><font size="4"><strong> .50 </strong></font><font size="3"> .75 </font><font size="2"> .90 </font><font size="1"> .95 </font></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="Variable" class="gt_row gt_left">age</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Age</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">years</td>
+<td headers="n" class="gt_row gt_right">274</td>
+<td headers="Missing" class="gt_row gt_right">34</td>
+<td headers="Distinct" class="gt_row gt_right">62</td>
+<td headers="Info" class="gt_row gt_right">0.999</td>
+<td headers="Mean" class="gt_row gt_right">43.33</td>
+<td headers="Gmd" class="gt_row gt_right">15.35</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-28a1d58564004d5be74e" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-28a1d58564004d5be74e">{"x":{"values":[5,1,4,2,1,2,2,2,2,1,2,4,6,3,4,5,5,6,4,9,8,3,8,7,10,13,9,5,13,6,7,9,9,6,5,2,7,6,5,6,7,3,5,6,4,5,6,3,3,1,3,0,4,1,2,2,1,0,0,1,3],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Q<sub>0.01<\\/sub>:14<br>Bin: [11, 16)<br>Observed:<br>11<br>12<br>14 (3)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.0182\",\"Bin: [16, 17)<br>Observed:<br>16<br>Proportion:0.0036 (n=1)<br>Cumulative:0.0219\",\"Bin: [17, 18)<br>Observed:<br>17 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.0365\",\"Bin: [18, 19)<br>Observed:<br>18 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.0438\",\"Bin: [19, 20)<br>Observed:<br>19<br>Proportion:0.0036 (n=1)<br>Cumulative:0.0474\",\"Bin: [20, 21)<br>Observed:<br>20 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.0547\",\"Bin: [21, 22)<br>Observed:<br>21 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.062\",\"Bin: [22, 23)<br>Observed:<br>22 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.0693\",\"Bin: [23, 24)<br>Observed:<br>23 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.0766\",\"Bin: [24, 25)<br>Observed:<br>24<br>Proportion:0.0036 (n=1)<br>Cumulative:0.0803\",\"Bin: [25, 26)<br>Observed:<br>25 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.0876\",\"Bin: [26, 27)<br>Observed:<br>26 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.1022\",\"Bin: [27, 28)<br>Observed:<br>27 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.1241\",\"Bin: [28, 29)<br>Observed:<br>28 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.135\",\"Bin: [29, 30)<br>Observed:<br>29 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.1496\",\"Bin: [30, 31)<br>Observed:<br>30 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.1679\",\"Bin: [31, 32)<br>Observed:<br>31 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.1861\",\"Bin: [32, 33)<br>Observed:<br>32 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.208\",\"Bin: [33, 34)<br>Observed:<br>33 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.2226\",\"Bin: [34, 35)<br>Observed:<br>34 (9)<br>Proportion:0.0328 (n=9)<br>Cumulative:0.2555\",\"Bin: [35, 36)<br>Observed:<br>35 (8)<br>Proportion:0.0292 (n=8)<br>Cumulative:0.2847\",\"Bin: [36, 37)<br>Observed:<br>36 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.2956\",\"Bin: [37, 38)<br>Observed:<br>37 (8)<br>Proportion:0.0292 (n=8)<br>Cumulative:0.3248\",\"Bin: [38, 39)<br>Observed:<br>38 (7)<br>Proportion:0.0255 (n=7)<br>Cumulative:0.3504\",\"Bin: [39, 40)<br>Observed:<br>39 (10)<br>Proportion:0.0365 (n=10)<br>Cumulative:0.3869\",\"Bin: [40, 41)<br>Observed:<br>40 (13)<br>Proportion:0.0474 (n=13)<br>Cumulative:0.4343\",\"Bin: [41, 42)<br>Observed:<br>41 (9)<br>Proportion:0.0328 (n=9)<br>Cumulative:0.4672\",\"Bin: [42, 43)<br>Observed:<br>42 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.4854\",\"Bin: [43, 44)<br>Observed:<br>43 (13)<br>Proportion:0.0474 (n=13)<br>Cumulative:0.5328\",\"Bin: [44, 45)<br>Observed:<br>44 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.5547\",\"Bin: [45, 46)<br>Observed:<br>45 (7)<br>Proportion:0.0255 (n=7)<br>Cumulative:0.5803\",\"Bin: [46, 47)<br>Observed:<br>46 (9)<br>Proportion:0.0328 (n=9)<br>Cumulative:0.6131\",\"Bin: [47, 48)<br>Observed:<br>47 (9)<br>Proportion:0.0328 (n=9)<br>Cumulative:0.646\",\"Bin: [48, 49)<br>Observed:<br>48 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.6679\",\"Bin: [49, 50)<br>Observed:<br>49 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.6861\",\"Bin: [50, 51)<br>Observed:<br>50 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.6934\",\"Bin: [51, 52)<br>Observed:<br>51 (7)<br>Proportion:0.0255 (n=7)<br>Cumulative:0.719\",\"Bin: [52, 53)<br>Observed:<br>52 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.7409\",\"Bin: [53, 54)<br>Observed:<br>53 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.7591\",\"Bin: [54, 55)<br>Observed:<br>54 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.781\",\"Bin: [55, 56)<br>Observed:<br>55 (7)<br>Proportion:0.0255 (n=7)<br>Cumulative:0.8066\",\"Bin: [56, 57)<br>Observed:<br>56 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.8175\",\"Bin: [57, 58)<br>Observed:<br>57 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.8358\",\"Bin: [58, 59)<br>Observed:<br>58 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.8577\",\"Bin: [59, 60)<br>Observed:<br>59 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.8723\",\"Bin: [60, 61)<br>Observed:<br>60 (5)<br>Proportion:0.0182 (n=5)<br>Cumulative:0.8905\",\"Bin: [61, 62)<br>Observed:<br>61 (6)<br>Proportion:0.0219 (n=6)<br>Cumulative:0.9124\",\"Bin: [62, 63)<br>Observed:<br>62 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.9234\",\"Bin: [63, 64)<br>Observed:<br>63 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.9343\",\"Bin: [64, 65)<br>Observed:<br>64<br>Proportion:0.0036 (n=1)<br>Cumulative:0.938\",\"Bin: [65, 66)<br>Observed:<br>65 (3)<br>Proportion:0.0109 (n=3)<br>Cumulative:0.9489\",\"\",\"Bin: [67, 68)<br>Observed:<br>67 (4)<br>Proportion:0.0146 (n=4)<br>Cumulative:0.9635\",\"Bin: [68, 69)<br>Observed:<br>68<br>Proportion:0.0036 (n=1)<br>Cumulative:0.9672\",\"Bin: [69, 70)<br>Observed:<br>69 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.9745\",\"Bin: [70, 71)<br>Observed:<br>70 (2)<br>Proportion:0.0073 (n=2)<br>Cumulative:0.9818\",\"Bin: [71, 72)<br>Observed:<br>71<br>Proportion:0.0036 (n=1)<br>Cumulative:0.9854\",\"\",\"\",\"Bin: [74, 75]<br>Observed:<br>75<br>Proportion:0.0036 (n=1)<br>Cumulative:0.9891\",\"Q<sub>0.99<\\/sub>:77<br>Bin: (75, 80]<br>Observed:<br>77<br>78<br>80<br>Proportion:0.0109 (n=3)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  20.0  </font><font size="2">  26.3  </font><font size="3">  34.0  </font><font size="4"><strong>  43.0  </strong></font><font size="3">  53.0  </font><font size="2">  61.0  </font><font size="1">  65.7  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">weight_kg</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Subject weight in kg at test time</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">kg</td>
+<td headers="n" class="gt_row gt_right">240</td>
+<td headers="Missing" class="gt_row gt_right">68</td>
+<td headers="Distinct" class="gt_row gt_right">111</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">79.97</td>
+<td headers="Gmd" class="gt_row gt_right">21.2</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-1988a183d0e32e39593b" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-1988a183d0e32e39593b">{"x":{"values":[3,2,0,2,1,0,1,4,1,3,5,2,2,5,8,2,4,6,5,2,6,6,4,6,6,5,5,6,3,3,5,3,5,4,8,2,6,5,3,5,3,5,2,3,6,1,6,3,2,5,3,4,2,2,3,0,4,2,5,4,2,0,3,2,3,1,1,0,1,0,1,0,1,0,2,0,0,0,1,3],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Q<sub>0.01<\\/sub>:45.7<br>Bin: [35.3, 47)<br>Observed:<br>35.3<br>45<br>45.7<br>Proportion:0.0125 (n=3)<br>Cumulative:0.0125\",\"Bin: [47, 48)<br>Observed:<br>47 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.0208\",\"\",\"Bin: [49, 50)<br>Observed:<br>49 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.0292\",\"Bin: [50, 51)<br>Observed:<br>50.8<br>Proportion:0.0042 (n=1)<br>Cumulative:0.0333\",\"\",\"Bin: [52, 53)<br>Observed:<br>52.8<br>Proportion:0.0042 (n=1)<br>Cumulative:0.0375\",\"Bin: [53, 54)<br>Observed:<br>53 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.0542\",\"Bin: [54, 55)<br>Observed:<br>54<br>Proportion:0.0042 (n=1)<br>Cumulative:0.0583\",\"Bin: [55, 56)<br>Observed:<br>55 (3)<br>Proportion:0.0125 (n=3)<br>Cumulative:0.0708\",\"Bin: [56, 57)<br>Observed:<br>56 (5)<br>Proportion:0.0208 (n=5)<br>Cumulative:0.0917\",\"Bin: [57, 58)<br>Observed:<br>57 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.1\",\"Bin: [58, 59)<br>Observed:<br>58 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.1083\",\"Bin: [59, 60)<br>Observed:<br>59 (4)<br>59.8<br>Proportion:0.0208 (n=5)<br>Cumulative:0.1292\",\"Bin: [60, 61)<br>Observed:<br>60 (7)<br>60.5<br>Proportion:0.0333 (n=8)<br>Cumulative:0.1625\",\"Bin: [61, 62)<br>Observed:<br>61.2<br>61.5<br>Proportion:0.0083 (n=2)<br>Cumulative:0.1708\",\"Bin: [62, 63)<br>Observed:<br>62 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.1875\",\"Bin: [63, 64)<br>Observed:<br>63 (6)<br>Proportion:0.025 (n=6)<br>Cumulative:0.2125\",\"Bin: [64, 65)<br>Observed:<br>64 (3)<br>64.7<br>64.8<br>Proportion:0.0208 (n=5)<br>Cumulative:0.2333\",\"Bin: [65, 66)<br>Observed:<br>65<br>65.5<br>Proportion:0.0083 (n=2)<br>Cumulative:0.2417\",\"Bin: [66, 67)<br>Observed:<br>66 (4)<br>66.4<br>66.5<br>Proportion:0.025 (n=6)<br>Cumulative:0.2667\",\"Bin: [67, 68)<br>Observed:<br>67 (5)<br>67.8<br>Proportion:0.025 (n=6)<br>Cumulative:0.2917\",\"Bin: [68, 69)<br>Observed:<br>68 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.3083\",\"Bin: [69, 70)<br>Observed:<br>69 (3)<br>69.7<br>69.8<br>69.9<br>Proportion:0.025 (n=6)<br>Cumulative:0.3333\",\"Bin: [70, 71)<br>Observed:<br>70 (6)<br>Proportion:0.025 (n=6)<br>Cumulative:0.3583\",\"Bin: [71, 72)<br>Observed:<br>71 (5)<br>Proportion:0.0208 (n=5)<br>Cumulative:0.3792\",\"Bin: [72, 73)<br>Observed:<br>72 (5)<br>Proportion:0.0208 (n=5)<br>Cumulative:0.4\",\"Bin: [73, 74)<br>Observed:<br>73 (6)<br>Proportion:0.025 (n=6)<br>Cumulative:0.425\",\"Bin: [74, 75)<br>Observed:<br>74 (2)<br>74.7<br>Proportion:0.0125 (n=3)<br>Cumulative:0.4375\",\"Bin: [75, 76)<br>Observed:<br>75 (2)<br>75.5<br>Proportion:0.0125 (n=3)<br>Cumulative:0.45\",\"Bin: [76, 77)<br>Observed:<br>76 (4)<br>76.5<br>Proportion:0.0208 (n=5)<br>Cumulative:0.4708\",\"Bin: [77, 78)<br>Observed:<br>77<br>77.5 (2)<br>Proportion:0.0125 (n=3)<br>Cumulative:0.4833\",\"Bin: [78, 79)<br>Observed:<br>78 (4)<br>78.5<br>Proportion:0.0208 (n=5)<br>Cumulative:0.5042\",\"Bin: [79, 80)<br>Observed:<br>79 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.5208\",\"Bin: [80, 81)<br>Observed:<br>80 (8)<br>Proportion:0.0333 (n=8)<br>Cumulative:0.5542\",\"Bin: [81, 82)<br>Observed:<br>81<br>81.2<br>Proportion:0.0083 (n=2)<br>Cumulative:0.5625\",\"Bin: [82, 83)<br>Observed:<br>82 (4)<br>82.2<br>82.5<br>Proportion:0.025 (n=6)<br>Cumulative:0.5875\",\"Bin: [83, 84)<br>Observed:<br>83 (4)<br>83.5<br>Proportion:0.0208 (n=5)<br>Cumulative:0.6083\",\"Bin: [84, 85)<br>Observed:<br>84 (2)<br>84.2<br>Proportion:0.0125 (n=3)<br>Cumulative:0.6208\",\"Bin: [85, 86)<br>Observed:<br>85 (4)<br>85.2<br>Proportion:0.0208 (n=5)<br>Cumulative:0.6417\",\"Bin: [86, 87)<br>Observed:<br>86<br>86.3<br>86.6<br>Proportion:0.0125 (n=3)<br>Cumulative:0.6542\",\"Bin: [87, 88)<br>Observed:<br>87 (4)<br>87.5<br>Proportion:0.0208 (n=5)<br>Cumulative:0.675\",\"Bin: [88, 89)<br>Observed:<br>88 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.6833\",\"Bin: [89, 90)<br>Observed:<br>89 (2)<br>89.5<br>Proportion:0.0125 (n=3)<br>Cumulative:0.6958\",\"Bin: [90, 91)<br>Observed:<br>90 (6)<br>Proportion:0.025 (n=6)<br>Cumulative:0.7208\",\"Bin: [91, 92)<br>Observed:<br>91.25<br>Proportion:0.0042 (n=1)<br>Cumulative:0.725\",\"Bin: [92, 93)<br>Observed:<br>92 (3)<br>92.1<br>92.3<br>92.5<br>Proportion:0.025 (n=6)<br>Cumulative:0.75\",\"Bin: [93, 94)<br>Observed:<br>93<br>93.1<br>93.7<br>Proportion:0.0125 (n=3)<br>Cumulative:0.7625\",\"Bin: [94, 95)<br>Observed:<br>94 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.7708\",\"Bin: [95, 96)<br>Observed:<br>95 (5)<br>Proportion:0.0208 (n=5)<br>Cumulative:0.7917\",\"Bin: [96, 97)<br>Observed:<br>96 (3)<br>Proportion:0.0125 (n=3)<br>Cumulative:0.8042\",\"Bin: [97, 98)<br>Observed:<br>97 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.8208\",\"Bin: [98, 99)<br>Observed:<br>98<br>98.9<br>Proportion:0.0083 (n=2)<br>Cumulative:0.8292\",\"Bin: [99, 100)<br>Observed:<br>99 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.8375\",\"Bin: [100, 101)<br>Observed:<br>100 (3)<br>Proportion:0.0125 (n=3)<br>Cumulative:0.85\",\"\",\"Bin: [102, 103)<br>Observed:<br>102 (2)<br>102.5<br>102.9<br>Proportion:0.0167 (n=4)<br>Cumulative:0.8667\",\"Bin: [103, 104)<br>Observed:<br>103 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.875\",\"Bin: [104, 105)<br>Observed:<br>104 (4)<br>104.2<br>Proportion:0.0208 (n=5)<br>Cumulative:0.8958\",\"Bin: [105, 106)<br>Observed:<br>105 (4)<br>Proportion:0.0167 (n=4)<br>Cumulative:0.9125\",\"Bin: [106, 107)<br>Observed:<br>106 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.9208\",\"\",\"Bin: [108, 109)<br>Observed:<br>108 (2)<br>108.2<br>Proportion:0.0125 (n=3)<br>Cumulative:0.9333\",\"Bin: [109, 110)<br>Observed:<br>109 (2)<br>Proportion:0.0083 (n=2)<br>Cumulative:0.9417\",\"Bin: [110, 111)<br>Observed:<br>110 (3)<br>Proportion:0.0125 (n=3)<br>Cumulative:0.9542\",\"Bin: [111, 112)<br>Observed:<br>111<br>Proportion:0.0042 (n=1)<br>Cumulative:0.9583\",\"Bin: [112, 113)<br>Observed:<br>112.4<br>Proportion:0.0042 (n=1)<br>Cumulative:0.9625\",\"\",\"Bin: [114, 115)<br>Observed:<br>114<br>Proportion:0.0042 (n=1)<br>Cumulative:0.9667\",\"\",\"Bin: [116, 117)<br>Observed:<br>116.3<br>Proportion:0.0042 (n=1)<br>Cumulative:0.9708\",\"\",\"Bin: [118, 119)<br>Observed:<br>118<br>Proportion:0.0042 (n=1)<br>Cumulative:0.975\",\"\",\"Bin: [120, 121)<br>Observed:<br>120<br>120.7<br>Proportion:0.0083 (n=2)<br>Cumulative:0.9833\",\"\",\"\",\"\",\"Bin: [124, 125]<br>Observed:<br>125<br>Proportion:0.0042 (n=1)<br>Cumulative:0.9875\",\"Q<sub>0.99<\\/sub>:129<br>Bin: (125, 158]<br>Observed:<br>129<br>137<br>158<br>Proportion:0.0125 (n=3)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  53.00  </font><font size="2">  57.90  </font><font size="3">  66.00  </font><font size="4"><strong>  78.25  </strong></font><font size="3">  92.62  </font><font size="2">  105.00  </font><font size="1">  110.00  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">height_m</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Subject height in meters</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">meters</td>
+<td headers="n" class="gt_row gt_right">250</td>
+<td headers="Missing" class="gt_row gt_right">58</td>
+<td headers="Distinct" class="gt_row gt_right">49</td>
+<td headers="Info" class="gt_row gt_right">0.999</td>
+<td headers="Mean" class="gt_row gt_right">1.735</td>
+<td headers="Gmd" class="gt_row gt_right">0.1305</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-6f13c44e81de2cd3a07f" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-6f13c44e81de2cd3a07f">{"x":{"values":[3,2,1,3,3,2,13,6,6,12,8,14,7,11,9,6,17,4,6,6,6,13,7,5,10,1,8,2,8,10,0,8,3,1,4,2,3,1,0,2,1,2,3,1,0,0,2,0,0,4,0,0,0,0,0,1,3],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Q<sub>0.01<\\/sub>:1.54<br>Bin: [1.46, 1.55)<br>Observed:<br>1.46<br>1.49<br>1.54<br>Proportion:0.012 (n=3)<br>Cumulative:0.012\",\"Bin: [1.55, 1.56)<br>Observed:<br>1.55 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.02\",\"Bin: [1.56, 1.57)<br>Observed:<br>1.56<br>Proportion:0.004 (n=1)<br>Cumulative:0.024\",\"Bin: [1.57, 1.58)<br>Observed:<br>1.57 (3)<br>Proportion:0.012 (n=3)<br>Cumulative:0.036\",\"Bin: [1.58, 1.59)<br>Observed:<br>1.58 (3)<br>Proportion:0.012 (n=3)<br>Cumulative:0.048\",\"Bin: [1.59, 1.6)<br>Observed:<br>1.59 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.056\",\"Bin: [1.6, 1.61)<br>Observed:<br>1.6 (13)<br>Proportion:0.052 (n=13)<br>Cumulative:0.108\",\"Bin: [1.61, 1.62)<br>Observed:<br>1.61 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.132\",\"Bin: [1.62, 1.63)<br>Observed:<br>1.62 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.156\",\"Bin: [1.63, 1.64)<br>Observed:<br>1.63 (12)<br>Proportion:0.048 (n=12)<br>Cumulative:0.204\",\"Bin: [1.64, 1.65)<br>Observed:<br>1.64 (8)<br>Proportion:0.032 (n=8)<br>Cumulative:0.236\",\"Bin: [1.65, 1.66)<br>Observed:<br>1.65 (14)<br>Proportion:0.056 (n=14)<br>Cumulative:0.292\",\"Bin: [1.66, 1.67)<br>Observed:<br>1.66 (7)<br>Proportion:0.028 (n=7)<br>Cumulative:0.32\",\"Bin: [1.67, 1.68)<br>Observed:<br>1.67 (11)<br>Proportion:0.044 (n=11)<br>Cumulative:0.364\",\"Bin: [1.68, 1.69)<br>Observed:<br>1.68 (9)<br>Proportion:0.036 (n=9)<br>Cumulative:0.4\",\"Bin: [1.69, 1.7)<br>Observed:<br>1.69 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.424\",\"Bin: [1.7, 1.71)<br>Observed:<br>1.7 (17)<br>Proportion:0.068 (n=17)<br>Cumulative:0.492\",\"Bin: [1.71, 1.72)<br>Observed:<br>1.71 (4)<br>Proportion:0.016 (n=4)<br>Cumulative:0.508\",\"Bin: [1.72, 1.73)<br>Observed:<br>1.72 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.532\",\"Bin: [1.73, 1.74)<br>Observed:<br>1.73 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.556\",\"Bin: [1.74, 1.75)<br>Observed:<br>1.74 (6)<br>Proportion:0.024 (n=6)<br>Cumulative:0.58\",\"Bin: [1.75, 1.76)<br>Observed:<br>1.75 (13)<br>Proportion:0.052 (n=13)<br>Cumulative:0.632\",\"Bin: [1.76, 1.77)<br>Observed:<br>1.76 (7)<br>Proportion:0.028 (n=7)<br>Cumulative:0.66\",\"Bin: [1.77, 1.78)<br>Observed:<br>1.77 (5)<br>Proportion:0.02 (n=5)<br>Cumulative:0.68\",\"Bin: [1.78, 1.79)<br>Observed:<br>1.78 (10)<br>Proportion:0.04 (n=10)<br>Cumulative:0.72\",\"Bin: [1.79, 1.8)<br>Observed:<br>1.79<br>Proportion:0.004 (n=1)<br>Cumulative:0.724\",\"Bin: [1.8, 1.81)<br>Observed:<br>1.8 (8)<br>Proportion:0.032 (n=8)<br>Cumulative:0.756\",\"Bin: [1.81, 1.82)<br>Observed:<br>1.81 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.764\",\"Bin: [1.82, 1.83)<br>Observed:<br>1.82 (8)<br>Proportion:0.032 (n=8)<br>Cumulative:0.796\",\"Bin: [1.83, 1.84)<br>Observed:<br>1.83 (10)<br>Proportion:0.04 (n=10)<br>Cumulative:0.836\",\"\",\"Bin: [1.85, 1.86)<br>Observed:<br>1.85 (8)<br>Proportion:0.032 (n=8)<br>Cumulative:0.868\",\"Bin: [1.86, 1.87)<br>Observed:<br>1.86 (3)<br>Proportion:0.012 (n=3)<br>Cumulative:0.88\",\"Bin: [1.87, 1.88)<br>Observed:<br>1.87<br>Proportion:0.004 (n=1)<br>Cumulative:0.884\",\"Bin: [1.88, 1.89)<br>Observed:<br>1.88 (4)<br>Proportion:0.016 (n=4)<br>Cumulative:0.9\",\"Bin: [1.89, 1.9)<br>Observed:<br>1.89 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.908\",\"Bin: [1.9, 1.91)<br>Observed:<br>1.9 (3)<br>Proportion:0.012 (n=3)<br>Cumulative:0.92\",\"Bin: [1.91, 1.92)<br>Observed:<br>1.91<br>Proportion:0.004 (n=1)<br>Cumulative:0.924\",\"\",\"Bin: [1.93, 1.94)<br>Observed:<br>1.93 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.932\",\"Bin: [1.94, 1.95)<br>Observed:<br>1.94<br>Proportion:0.004 (n=1)<br>Cumulative:0.936\",\"Bin: [1.95, 1.96)<br>Observed:<br>1.95 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.944\",\"Bin: [1.96, 1.97)<br>Observed:<br>1.96 (3)<br>Proportion:0.012 (n=3)<br>Cumulative:0.956\",\"Bin: [1.97, 1.98)<br>Observed:<br>1.97<br>Proportion:0.004 (n=1)<br>Cumulative:0.96\",\"\",\"\",\"Bin: [2, 2.01)<br>Observed:<br>2 (2)<br>Proportion:0.008 (n=2)<br>Cumulative:0.968\",\"\",\"\",\"Bin: [2.03, 2.04)<br>Observed:<br>2.03 (4)<br>Proportion:0.016 (n=4)<br>Cumulative:0.984\",\"\",\"\",\"\",\"\",\"\",\"Bin: [2.09, 2.1]<br>Observed:<br>2.1<br>Proportion:0.004 (n=1)<br>Cumulative:0.988\",\"Q<sub>0.99<\\/sub>:2.14<br>Bin: (2.1, 2.2]<br>Observed:<br>2.14 (2)<br>2.2<br>Proportion:0.012 (n=3)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  1.590  </font><font size="2">  1.600  </font><font size="3">  1.650  </font><font size="4"><strong>  1.710  </strong></font><font size="3">  1.800  </font><font size="2">  1.881  </font><font size="1">  1.960  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">bmi</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Body mass index</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">kg/m<sup>2</sup></td>
+<td headers="n" class="gt_row gt_right">235</td>
+<td headers="Missing" class="gt_row gt_right">73</td>
+<td headers="Distinct" class="gt_row gt_right">219</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">26.41</td>
+<td headers="Gmd" class="gt_row gt_right">5.71</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-b10c04a19b3cd9250f6e" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-b10c04a19b3cd9250f6e">{"x":{"values":[3,2,2,2,0,0,0,1,2,2,1,4,4,4,3,1,4,6,2,3,2,4,4,3,1,7,1,8,5,3,5,7,3,4,10,0,7,2,4,3,3,2,2,4,4,8,1,5,3,2,3,1,2,2,1,4,2,2,1,1,2,4,2,3,2,1,4,0,1,0,1,1,2,1,1,3,0,1,0,2,1,0,0,3,0,1,0,1,0,0,1,0,1,1,3,0,1,0,0,0,2,0,0,0,1,1,0,0,0,1,4],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Q<sub>0.01<\\/sub>:17.3061<br>Bin: [16.560330268343, 18.2)<br>Observed:<br>16.5603<br>16.786<br>17.3061<br>Proportion:0.0128 (n=3)<br>Cumulative:0.0128\",\"Bin: [18.2, 18.4)<br>Observed:<br>18.2563<br>18.3594<br>Proportion:0.0085 (n=2)<br>Cumulative:0.0213\",\"Bin: [18.4, 18.6)<br>Observed:<br>18.5132<br>18.591<br>Proportion:0.0085 (n=2)<br>Cumulative:0.0298\",\"Bin: [18.6, 18.8)<br>Observed:<br>18.7109<br>18.7783<br>Proportion:0.0085 (n=2)<br>Cumulative:0.0383\",\"\",\"\",\"\",\"Bin: [19.4, 19.6)<br>Observed:<br>19.598<br>Proportion:0.0043 (n=1)<br>Cumulative:0.0426\",\"Bin: [19.6, 19.8)<br>Observed:<br>19.7055<br>19.7232<br>Proportion:0.0085 (n=2)<br>Cumulative:0.0511\",\"Bin: [19.8, 20)<br>Observed:<br>19.8177 (2)<br>Proportion:0.0085 (n=2)<br>Cumulative:0.0596\",\"Bin: [20, 20.2)<br>Observed:<br>20<br>Proportion:0.0043 (n=1)<br>Cumulative:0.0638\",\"Bin: [20.2, 20.4)<br>Observed:<br>20.202<br>20.2449<br>20.3696<br>20.3712<br>Proportion:0.017 (n=4)<br>Cumulative:0.0809\",\"Bin: [20.4, 20.6)<br>Observed:<br>20.4382<br>20.5499<br>20.5693<br>20.5714<br>Proportion:0.017 (n=4)<br>Cumulative:0.0979\",\"Bin: [20.6, 20.8)<br>Observed:<br>20.6575<br>20.692<br>20.7008<br>20.7031<br>Proportion:0.017 (n=4)<br>Cumulative:0.1149\",\"Bin: [20.8, 21)<br>Observed:<br>20.8209<br>20.8307<br>20.9071<br>Proportion:0.0128 (n=3)<br>Cumulative:0.1277\",\"Bin: [21, 21.2)<br>Observed:<br>21.1463<br>Proportion:0.0043 (n=1)<br>Cumulative:0.1319\",\"Bin: [21.2, 21.4)<br>Observed:<br>21.25<br>21.3068<br>21.3382 (2)<br>Proportion:0.017 (n=4)<br>Cumulative:0.1489\",\"Bin: [21.4, 21.6)<br>Observed:<br>21.4109<br>21.4278<br>21.4346 (2)<br>21.4533<br>21.5139<br>Proportion:0.0255 (n=6)<br>Cumulative:0.1745\",\"Bin: [21.6, 21.8)<br>Observed:<br>21.6713<br>21.7993<br>Proportion:0.0085 (n=2)<br>Cumulative:0.183\",\"Bin: [21.8, 22)<br>Observed:<br>21.8699<br>21.9076<br>21.918<br>Proportion:0.0128 (n=3)<br>Cumulative:0.1957\",\"Bin: [22, 22.2)<br>Observed:<br>22.0711<br>22.1453<br>Proportion:0.0085 (n=2)<br>Cumulative:0.2043\",\"Bin: [22.2, 22.4)<br>Observed:<br>22.2041<br>22.2222<br>22.2753<br>22.3144<br>Proportion:0.017 (n=4)<br>Cumulative:0.2213\",\"Bin: [22.4, 22.6)<br>Observed:<br>22.4813<br>22.5516<br>22.5827<br>22.5896<br>Proportion:0.017 (n=4)<br>Cumulative:0.2383\",\"Bin: [22.6, 22.8)<br>Observed:<br>22.7244<br>22.7317<br>22.7904<br>Proportion:0.0128 (n=3)<br>Cumulative:0.2511\",\"Bin: [22.8, 23)<br>Observed:<br>22.835<br>Proportion:0.0043 (n=1)<br>Cumulative:0.2553\",\"Bin: [23, 23.2)<br>Observed:<br>23.03<br>23.1206<br>23.1293<br>23.1473<br>23.1834 (2)<br>23.1911<br>Proportion:0.0298 (n=7)<br>Cumulative:0.2851\",\"Bin: [23.2, 23.4)<br>Observed:<br>23.235<br>Proportion:0.0043 (n=1)<br>Cumulative:0.2894\",\"Bin: [23.4, 23.6)<br>Observed:<br>23.4236<br>23.4339<br>23.4375 (2)<br>23.4835<br>23.5078<br>23.5102<br>23.5666<br>Proportion:0.034 (n=8)<br>Cumulative:0.3234\",\"Bin: [23.6, 23.8)<br>Observed:<br>23.6276<br>23.7022<br>23.7118<br>23.7228<br>23.7954<br>Proportion:0.0213 (n=5)<br>Cumulative:0.3447\",\"Bin: [23.8, 24)<br>Observed:<br>23.8754<br>23.9851<br>23.9912<br>Proportion:0.0128 (n=3)<br>Cumulative:0.3574\",\"Bin: [24, 24.2)<br>Observed:<br>24.0275<br>24.093<br>24.0964<br>24.1052<br>24.187<br>Proportion:0.0213 (n=5)<br>Cumulative:0.3787\",\"Bin: [24.2, 24.4)<br>Observed:<br>24.2187 (2)<br>24.2215 (2)<br>24.2735<br>24.3141<br>24.3824<br>Proportion:0.0298 (n=7)<br>Cumulative:0.4085\",\"Bin: [24.4, 24.6)<br>Observed:<br>24.4183<br>24.4839<br>24.5435<br>Proportion:0.0128 (n=3)<br>Cumulative:0.4213\",\"Bin: [24.6, 24.8)<br>Observed:<br>24.6097<br>24.6181<br>24.7249<br>24.7255<br>Proportion:0.017 (n=4)<br>Cumulative:0.4383\",\"Bin: [24.8, 25)<br>Observed:<br>24.8016 (2)<br>24.8163<br>24.8732<br>24.893<br>24.8981<br>24.9153<br>24.938<br>24.9649<br>24.9703<br>Proportion:0.0426 (n=10)<br>Cumulative:0.4809\",\"\",\"Bin: [25.2, 25.4)<br>Observed:<br>25.2082<br>25.2372<br>25.2499<br>25.3302<br>25.3444<br>25.3815<br>25.3952<br>Proportion:0.0298 (n=7)<br>Cumulative:0.5106\",\"Bin: [25.4, 25.6)<br>Observed:<br>25.5593<br>25.5937<br>Proportion:0.0085 (n=2)<br>Cumulative:0.5191\",\"Bin: [25.6, 25.8)<br>Observed:<br>25.7445<br>25.7618<br>25.7812<br>25.7959<br>Proportion:0.017 (n=4)<br>Cumulative:0.5362\",\"Bin: [25.8, 26)<br>Observed:<br>25.9095<br>25.9516<br>25.9787<br>Proportion:0.0128 (n=3)<br>Cumulative:0.5489\",\"Bin: [26, 26.2)<br>Observed:<br>26.0044<br>26.1066<br>26.1966<br>Proportion:0.0128 (n=3)<br>Cumulative:0.5617\",\"Bin: [26.2, 26.4)<br>Observed:<br>26.2564<br>26.3958<br>Proportion:0.0085 (n=2)<br>Cumulative:0.5702\",\"Bin: [26.4, 26.6)<br>Observed:<br>26.4721<br>26.556<br>Proportion:0.0085 (n=2)<br>Cumulative:0.5787\",\"Bin: [26.6, 26.8)<br>Observed:<br>26.7229 (2)<br>26.7755<br>26.7949<br>Proportion:0.017 (n=4)<br>Cumulative:0.5957\",\"Bin: [26.8, 27)<br>Observed:<br>26.8136<br>26.8519<br>26.8787<br>26.9896<br>Proportion:0.017 (n=4)<br>Cumulative:0.6128\",\"Bin: [27, 27.2)<br>Observed:<br>27.0416 (2)<br>27.0993 (2)<br>27.1017<br>27.102<br>27.1669<br>27.1706<br>Proportion:0.034 (n=8)<br>Cumulative:0.6468\",\"Bin: [27.2, 27.4)<br>Observed:<br>27.2509<br>Proportion:0.0043 (n=1)<br>Cumulative:0.6511\",\"Bin: [27.4, 27.6)<br>Observed:<br>27.4506<br>27.4717 (2)<br>27.4756 (2)<br>Proportion:0.0213 (n=5)<br>Cumulative:0.6723\",\"Bin: [27.6, 27.8)<br>Observed:<br>27.6095<br>27.7551<br>27.7778<br>Proportion:0.0128 (n=3)<br>Cumulative:0.6851\",\"Bin: [27.8, 28)<br>Observed:<br>27.9202<br>27.9793<br>Proportion:0.0085 (n=2)<br>Cumulative:0.6936\",\"Bin: [28, 28.2)<br>Observed:<br>28.0428<br>28.0497<br>28.0689<br>Proportion:0.0128 (n=3)<br>Cumulative:0.7064\",\"Bin: [28.2, 28.4)<br>Observed:<br>28.2284<br>Proportion:0.0043 (n=1)<br>Cumulative:0.7106\",\"Bin: [28.4, 28.6)<br>Observed:<br>28.4082<br>28.5494<br>Proportion:0.0085 (n=2)<br>Cumulative:0.7191\",\"Bin: [28.6, 28.8)<br>Observed:<br>28.6048<br>28.6851<br>Proportion:0.0085 (n=2)<br>Cumulative:0.7277\",\"Bin: [28.8, 29)<br>Observed:<br>28.9979<br>Proportion:0.0043 (n=1)<br>Cumulative:0.7319\",\"Bin: [29, 29.2)<br>Observed:<br>29.0174<br>29.0318<br>29.0659<br>29.1264<br>Proportion:0.017 (n=4)<br>Cumulative:0.7489\",\"Bin: [29.2, 29.4)<br>Observed:<br>29.2839<br>29.3848<br>Proportion:0.0085 (n=2)<br>Cumulative:0.7574\",\"Bin: [29.4, 29.6)<br>Observed:<br>29.4107<br>29.4922<br>Proportion:0.0085 (n=2)<br>Cumulative:0.766\",\"Bin: [29.6, 29.8)<br>Observed:<br>29.6875<br>Proportion:0.0043 (n=1)<br>Cumulative:0.7702\",\"Bin: [29.8, 30)<br>Observed:<br>29.9169<br>Proportion:0.0043 (n=1)<br>Cumulative:0.7745\",\"Bin: [30, 30.2)<br>Observed:<br>30.0408<br>30.1871<br>Proportion:0.0085 (n=2)<br>Cumulative:0.783\",\"Bin: [30.2, 30.4)<br>Observed:<br>30.2734<br>30.2843<br>30.3019<br>30.3461<br>Proportion:0.017 (n=4)<br>Cumulative:0.8\",\"Bin: [30.4, 30.6)<br>Observed:<br>30.4832<br>30.5622<br>Proportion:0.0085 (n=2)<br>Cumulative:0.8085\",\"Bin: [30.6, 30.8)<br>Observed:<br>30.6148<br>30.6689<br>30.7787<br>Proportion:0.0128 (n=3)<br>Cumulative:0.8213\",\"Bin: [30.8, 31)<br>Observed:<br>30.8012<br>30.8642<br>Proportion:0.0085 (n=2)<br>Cumulative:0.8298\",\"Bin: [31, 31.2)<br>Observed:<br>31.0953<br>Proportion:0.0043 (n=1)<br>Cumulative:0.834\",\"Bin: [31.2, 31.4)<br>Observed:<br>31.25<br>31.3536<br>31.3972 (2)<br>Proportion:0.017 (n=4)<br>Cumulative:0.8511\",\"\",\"Bin: [31.6, 31.8)<br>Observed:<br>31.6988<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8553\",\"\",\"Bin: [32, 32.2)<br>Observed:<br>32.0386<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8596\",\"Bin: [32.2, 32.4)<br>Observed:<br>32.2708<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8638\",\"Bin: [32.4, 32.6)<br>Observed:<br>32.4662<br>32.548<br>Proportion:0.0085 (n=2)<br>Cumulative:0.8723\",\"Bin: [32.6, 32.8)<br>Observed:<br>32.6608<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8766\",\"Bin: [32.8, 33)<br>Observed:<br>32.8306<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8809\",\"Bin: [33, 33.2)<br>Observed:<br>33.0783<br>33.1398<br>33.1452<br>Proportion:0.0128 (n=3)<br>Cumulative:0.8936\",\"\",\"Bin: [33.4, 33.6)<br>Observed:<br>33.4554<br>Proportion:0.0043 (n=1)<br>Cumulative:0.8979\",\"\",\"Bin: [33.8, 34)<br>Observed:<br>33.9506 (2)<br>Proportion:0.0085 (n=2)<br>Cumulative:0.9064\",\"Bin: [34, 34.2)<br>Observed:<br>34.0866<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9106\",\"\",\"\",\"Bin: [34.6, 34.8)<br>Observed:<br>34.6021 (2)<br>34.7209<br>Proportion:0.0128 (n=3)<br>Cumulative:0.9234\",\"\",\"Bin: [35, 35.2)<br>Observed:<br>35.0112<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9277\",\"\",\"Bin: [35.4, 35.6)<br>Observed:<br>35.4922<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9319\",\"\",\"\",\"Bin: [36, 36.2)<br>Observed:<br>36.0554<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9362\",\"\",\"Bin: [36.4, 36.6)<br>Observed:<br>36.523<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9404\",\"Bin: [36.6, 36.8)<br>Observed:<br>36.7537<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9447\",\"Bin: [36.8, 37)<br>Observed:<br>36.8084<br>36.8481<br>36.9321<br>Proportion:0.0128 (n=3)<br>Cumulative:0.9574\",\"\",\"Bin: [37.2, 37.4)<br>Observed:<br>37.2428<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9617\",\"\",\"\",\"\",\"Bin: [38, 38.2)<br>Observed:<br>38.0548<br>38.1639<br>Proportion:0.0085 (n=2)<br>Cumulative:0.9702\",\"\",\"\",\"\",\"Bin: [38.8, 39)<br>Observed:<br>38.9468<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9745\",\"Bin: [39, 39.2)<br>Observed:<br>39.1837<br>Proportion:0.0043 (n=1)<br>Cumulative:0.9787\",\"\",\"\",\"\",\"Bin: [39.8, 40]<br>Observed:<br>39.8148<br>Proportion:0.0043 (n=1)<br>Cumulative:0.983\",\"Q<sub>0.99<\\/sub>:40.0292<br>Bin: (40, 46.1650840029218]<br>Observed:<br>40.0091<br>40.0292<br>41.2856<br>46.1651<br>Proportion:0.017 (n=4)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  19.79  </font><font size="2">  20.67  </font><font size="3">  22.81  </font><font size="4"><strong>  25.34  </strong></font><font size="3">  29.21  </font><font size="2">  33.75  </font><font size="1">  36.82  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">aerobics_activity</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Duration of aerobic activity per week</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">minutes/week</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">32</td>
+<td headers="Info" class="gt_row gt_right">0.674</td>
+<td headers="Mean" class="gt_row gt_right">48.89</td>
+<td headers="Gmd" class="gt_row gt_right">80.51</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-a6c21468ac260ae22a49" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-a6c21468ac260ae22a49">{"x":{"values":[212,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,1,0,1,3,0,0,0,0,14,0,0,2,0,4,3,0,12,0,0,3,0,1,6,1,0,1,0,4,2,1,8,0,2,1,1,0,6,0,2,0,0,2,0,0,1,0,0,1,0,2,1,0,0,0,1,2,0,0,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [1, 1.05127)<br>Observed:<br>0 (212)<br>Proportion:0.6883 (n=212)<br>Cumulative:0.6883\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [29.9641, 31.5004)<br>Observed:<br>30 (6)<br>Proportion:0.0195 (n=6)<br>Cumulative:0.7078\",\"\",\"\",\"\",\"\",\"Bin: [38.4747, 40.4473)<br>Observed:<br>40<br>Proportion:0.0032 (n=1)<br>Cumulative:0.711\",\"\",\"Bin: [42.5211, 44.7012)<br>Observed:<br>43.75<br>Proportion:0.0032 (n=1)<br>Cumulative:0.7143\",\"Bin: [44.7012, 46.9931)<br>Observed:<br>45 (3)<br>Proportion:0.0097 (n=3)<br>Cumulative:0.724\",\"\",\"\",\"\",\"\",\"Bin: [57.3975, 60.3403)<br>Observed:<br>60 (14)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.7695\",\"\",\"\",\"Bin: [66.6863, 70.1054)<br>Observed:<br>70 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.776\",\"\",\"Bin: [73.6998, 77.4785)<br>Observed:<br>75 (4)<br>Proportion:0.013 (n=4)<br>Cumulative:0.789\",\"Bin: [77.4785, 81.4509)<br>Observed:<br>80 (3)<br>Proportion:0.0097 (n=3)<br>Cumulative:0.7987\",\"\",\"Bin: [85.6269, 90.0171)<br>Observed:<br>90 (12)<br>Proportion:0.039 (n=12)<br>Cumulative:0.8377\",\"\",\"\",\"Bin: [99.4843, 104.585)<br>Observed:<br>100 (3)<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8474\",\"\",\"Bin: [109.947, 115.584)<br>Observed:<br>112.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8506\",\"Bin: [115.584, 121.51)<br>Observed:<br>120 (6)<br>Proportion:0.0195 (n=6)<br>Cumulative:0.8701\",\"Bin: [121.51, 127.74)<br>Observed:<br>122.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8734\",\"\",\"Bin: [134.29, 141.175)<br>Observed:<br>135<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8766\",\"\",\"Bin: [148.413, 156.022)<br>Observed:<br>150 (4)<br>Proportion:0.013 (n=4)<br>Cumulative:0.8896\",\"Bin: [156.022, 164.022)<br>Observed:<br>160 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8961\",\"Bin: [164.022, 172.431)<br>Observed:<br>165<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8994\",\"Bin: [172.431, 181.272)<br>Observed:<br>180 (8)<br>Proportion:0.026 (n=8)<br>Cumulative:0.9253\",\"\",\"Bin: [190.566, 200.337)<br>Observed:<br>200 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9318\",\"Bin: [200.337, 210.608)<br>Observed:<br>210<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9351\",\"Bin: [210.608, 221.406)<br>Observed:<br>213.75<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9383\",\"\",\"Bin: [232.758, 244.692)<br>Observed:<br>240 (6)<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9578\",\"\",\"Bin: [257.238, 270.426)<br>Observed:<br>270 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"\",\"\",\"Bin: [298.867, 314.191)<br>Observed:<br>300 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9708\",\"\",\"\",\"Bin: [347.234, 365.037)<br>Observed:<br>360<br>Proportion:0.0032 (n=1)<br>Cumulative:0.974\",\"\",\"\",\"Bin: [403.429, 424.113)<br>Observed:<br>420<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9773\",\"\",\"Bin: [445.858, 468.717)<br>Observed:<br>450 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9838\",\"Bin: [468.717, 492.749)<br>Observed:<br>480<br>Proportion:0.0032 (n=1)<br>Cumulative:0.987\",\"\",\"\",\"\",\"Bin: [572.493, 601.845)<br>Observed:<br>600<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9903\",\"Bin: [601.845, 632.702)<br>Observed:<br>630 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9968\",\"\",\"\",\"Bin: [699.244, 735.095]<br>Observed:<br>720<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  0.0  </font><font size="2">  0.0  </font><font size="3">  0.0  </font><font size="4"><strong>  0.0  </strong></font><font size="3">  60.0  </font><font size="2">  169.5  </font><font size="1">  240.0  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">resistance_activity</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Duration of resistance (involving weights) activity per week</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">minutes/week</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">24</td>
+<td headers="Info" class="gt_row gt_right">0.550</td>
+<td headers="Mean" class="gt_row gt_right">31.24</td>
+<td headers="Gmd" class="gt_row gt_right">53.27</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-0f4f5fbe6991a989356c" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-0f4f5fbe6991a989356c">{"x":{"values":[236,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,2,0,0,4,0,1,0,0,6,0,0,1,0,0,2,0,8,0,0,5,0,1,12,0,1,1,0,1,1,0,12,0,0,0,0,0,2,0,2,0,0,1,0,0,1,0,1,0,0,1,0,0,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [1, 1.05127)<br>Observed:<br>0 (236)<br>Proportion:0.7662 (n=236)<br>Cumulative:0.7662\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [29.9641, 31.5004)<br>Observed:<br>30 (5)<br>Proportion:0.0162 (n=5)<br>Cumulative:0.7825\",\"\",\"\",\"\",\"\",\"Bin: [38.4747, 40.4473)<br>Observed:<br>40 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.789\",\"\",\"\",\"Bin: [44.7012, 46.9931)<br>Observed:<br>45 (4)<br>Proportion:0.013 (n=4)<br>Cumulative:0.8019\",\"\",\"Bin: [49.4024, 51.9354)<br>Observed:<br>50<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8052\",\"\",\"\",\"Bin: [57.3975, 60.3403)<br>Observed:<br>60 (6)<br>Proportion:0.0195 (n=6)<br>Cumulative:0.8247\",\"\",\"\",\"Bin: [66.6863, 70.1054)<br>Observed:<br>67.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8279\",\"\",\"\",\"Bin: [77.4785, 81.4509)<br>Observed:<br>80 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8344\",\"\",\"Bin: [85.6269, 90.0171)<br>Observed:<br>90 (8)<br>Proportion:0.026 (n=8)<br>Cumulative:0.8604\",\"\",\"\",\"Bin: [99.4843, 104.585)<br>Observed:<br>100 (5)<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8766\",\"\",\"Bin: [109.947, 115.584)<br>Observed:<br>112.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8799\",\"Bin: [115.584, 121.51)<br>Observed:<br>120 (12)<br>Proportion:0.039 (n=12)<br>Cumulative:0.9188\",\"\",\"Bin: [127.74, 134.29)<br>Observed:<br>130<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9221\",\"Bin: [134.29, 141.175)<br>Observed:<br>135<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9253\",\"\",\"Bin: [148.413, 156.022)<br>Observed:<br>150<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9286\",\"Bin: [156.022, 164.022)<br>Observed:<br>157.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9318\",\"\",\"Bin: [172.431, 181.272)<br>Observed:<br>180 (12)<br>Proportion:0.039 (n=12)<br>Cumulative:0.9708\",\"\",\"\",\"\",\"\",\"\",\"Bin: [232.758, 244.692)<br>Observed:<br>240 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9773\",\"\",\"Bin: [257.238, 270.426)<br>Observed:<br>270 (2)<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9838\",\"\",\"\",\"Bin: [298.867, 314.191)<br>Observed:<br>300<br>Proportion:0.0032 (n=1)<br>Cumulative:0.987\",\"\",\"\",\"Bin: [347.234, 365.037)<br>Observed:<br>360<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9903\",\"\",\"Bin: [383.753, 403.429)<br>Observed:<br>400<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9935\",\"\",\"\",\"Bin: [445.858, 468.717)<br>Observed:<br>450<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9968\",\"\",\"\",\"Bin: [518.013, 544.572]<br>Observed:<br>540<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  0  </font><font size="2">  0  </font><font size="3">  0  </font><font size="4"><strong>  0  </strong></font><font size="3">  0  </font><font size="2">  120  </font><font size="1">  180  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Glycine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">1051</td>
+<td headers="Gmd" class="gt_row gt_right">968.4</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-ac53e508aa4365d9f1f8" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-ac53e508aa4365d9f1f8">{"x":{"values":[1,0,1,0,0,0,0,0,0,1,0,0,0,1,2,2,3,0,0,3,3,2,3,5,6,5,3,7,2,6,5,4,7,10,9,3,5,11,7,7,11,11,8,11,5,4,8,12,8,10,6,12,5,2,4,2,8,6,5,5,4,0,5,3,2,1,2,4,1,2,1,1,2,2,0,1,0,0,1,2,0,0,1,0,0,0,1,1,1,1,0,0,0,0,1,0,0,0,0,0,0,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [81.4509, 85.6269)<br>Observed:<br>84.401<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"Bin: [90.0171, 94.6324)<br>Observed:<br>92.3121<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [127.74, 134.29)<br>Observed:<br>133.004<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0097\",\"\",\"\",\"\",\"Bin: [156.022, 164.022)<br>Observed:<br>162.861<br>Proportion:0.0032 (n=1)<br>Cumulative:0.013\",\"Bin: [164.022, 172.431)<br>Observed:<br>168.89<br>170.386<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0195\",\"Bin: [172.431, 181.272)<br>Observed:<br>173.311<br>181.201<br>Proportion:0.0065 (n=2)<br>Cumulative:0.026\",\"Bin: [181.272, 190.566)<br>Observed:<br>186.63<br>189.631<br>190.498<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0357\",\"\",\"\",\"Bin: [210.608, 221.406)<br>Observed:<br>217.388<br>217.441<br>218.315<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0455\",\"Bin: [221.406, 232.758)<br>Observed:<br>224.414<br>230.214<br>231.944<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0552\",\"Bin: [232.758, 244.692)<br>Observed:<br>236.374<br>236.93<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0617\",\"Bin: [244.692, 257.238)<br>Observed:<br>245.97<br>248.421<br>252.827<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0714\",\"Bin: [257.238, 270.426)<br>Observed:<br>260.654<br>260.772<br>261.58<br>264.83<br>265.724<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0877\",\"Bin: [270.426, 284.291)<br>Observed:<br>273.552<br>273.623<br>274.912<br>278.739<br>282.134<br>283.3<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1071\",\"Bin: [284.291, 298.867)<br>Observed:<br>286.5<br>287.828<br>292.691<br>294.776<br>296.904<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1234\",\"Bin: [298.867, 314.191)<br>Observed:<br>300.333<br>304.8<br>312.489<br>Proportion:0.0097 (n=3)<br>Cumulative:0.1331\",\"Bin: [314.191, 330.3)<br>Observed:<br>317.406<br>319.14<br>321.701<br>326.301<br>326.967<br>328.109<br>328.481<br>Proportion:0.0227 (n=7)<br>Cumulative:0.1558\",\"Bin: [330.3, 347.234)<br>Observed:<br>332.3<br>332.681<br>Proportion:0.0065 (n=2)<br>Cumulative:0.1623\",\"Bin: [347.234, 365.037)<br>Observed:<br>347.588<br>349.991<br>351.828<br>357.502<br>358.553<br>359.497<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1818\",\"Bin: [365.037, 383.753)<br>Observed:<br>366.455<br>368.194<br>370.25<br>372.447<br>376.059<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1981\",\"Bin: [383.753, 403.429)<br>Observed:<br>384<br>391.045<br>391.846<br>399.914<br>Proportion:0.013 (n=4)<br>Cumulative:0.211\",\"Bin: [403.429, 424.113)<br>Observed:<br>403.579<br>406.248<br>407.486<br>407.898<br>411.287<br>415.656<br>422.6<br>Proportion:0.0227 (n=7)<br>Cumulative:0.2338\",\"Bin: [424.113, 445.858)<br>Observed:<br>424.504<br>425.99<br>432.2<br>433.2<br>436.966<br>439.541<br>439.887<br>440.279<br>442.488<br>443.988<br>Proportion:0.0325 (n=10)<br>Cumulative:0.2662\",\"Bin: [445.858, 468.717)<br>Observed:<br>447.132<br>449.789<br>450.336<br>452.732<br>453.221<br>457.069<br>466.432<br>468.176<br>468.495<br>Proportion:0.0292 (n=9)<br>Cumulative:0.2955\",\"Bin: [468.717, 492.749)<br>Observed:<br>468.865<br>472.961<br>481.985<br>Proportion:0.0097 (n=3)<br>Cumulative:0.3052\",\"Bin: [492.749, 518.013)<br>Observed:<br>495.6<br>500.139<br>504.476<br>510.659<br>512.609<br>Proportion:0.0162 (n=5)<br>Cumulative:0.3214\",\"Bin: [518.013, 544.572)<br>Observed:<br>523.227 - 543.911 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.3571\",\"Bin: [544.572, 572.493)<br>Observed:<br>545.773<br>550.272<br>567.668<br>570.152<br>571.282<br>571.715<br>572.217<br>Proportion:0.0227 (n=7)<br>Cumulative:0.3799\",\"Bin: [572.493, 601.845)<br>Observed:<br>572.698<br>575.8<br>588.424<br>589.745<br>590.876<br>593.188<br>594.399<br>Proportion:0.0227 (n=7)<br>Cumulative:0.4026\",\"Bin: [601.845, 632.702)<br>Observed:<br>601.9 - 626.9 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.4383\",\"Bin: [632.702, 665.142)<br>Observed:<br>635.061 - 662.521 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.474\",\"Bin: [665.142, 699.244)<br>Observed:<br>667.332<br>671.775<br>682.375<br>684.316<br>686.83<br>691.81<br>698.809<br>698.83<br>Proportion:0.026 (n=8)<br>Cumulative:0.5\",\"Bin: [699.244, 735.095)<br>Observed:<br>702.387 - 733.3 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.5357\",\"Bin: [735.095, 772.784)<br>Observed:<br>740.515<br>741.839<br>761.25<br>771.163<br>771.607<br>Proportion:0.0162 (n=5)<br>Cumulative:0.5519\",\"Bin: [772.784, 812.406)<br>Observed:<br>772.842<br>784.972<br>788.588<br>788.681<br>Proportion:0.013 (n=4)<br>Cumulative:0.5649\",\"Bin: [812.406, 854.059)<br>Observed:<br>814.684<br>815.213<br>821.52<br>822.876<br>825.556<br>826.987<br>830.655<br>833.751<br>Proportion:0.026 (n=8)<br>Cumulative:0.5909\",\"Bin: [854.059, 897.847)<br>Observed:<br>854.832 - 895.993 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.6299\",\"Bin: [897.847, 943.881)<br>Observed:<br>899.84<br>913.755<br>917.212<br>921.705<br>934.078<br>937.732<br>941.996<br>942.087<br>Proportion:0.026 (n=8)<br>Cumulative:0.6558\",\"Bin: [943.881, 992.275)<br>Observed:<br>947.179<br>950.498<br>951.131<br>952.378<br>953.276<br>961.478<br>970.001<br>973.379<br>973.478<br>990.037<br>Proportion:0.0325 (n=10)<br>Cumulative:0.6883\",\"Bin: [992.275, 1043.15)<br>Observed:<br>1017.98<br>1018.05<br>1026.2<br>1028.6<br>1030.9<br>1039.97<br>Proportion:0.0195 (n=6)<br>Cumulative:0.7078\",\"Bin: [1043.15, 1096.63)<br>Observed:<br>1043.6 - 1093.58 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.7468\",\"Bin: [1096.63, 1152.86)<br>Observed:<br>1108.41<br>1113.64<br>1116.92<br>1122.78<br>1146.85<br>Proportion:0.0162 (n=5)<br>Cumulative:0.763\",\"Bin: [1152.86, 1211.97)<br>Observed:<br>1154.83<br>1188.63<br>Proportion:0.0065 (n=2)<br>Cumulative:0.7695\",\"Bin: [1211.97, 1274.11)<br>Observed:<br>1220.13<br>1236.29<br>1246.89<br>1267.17<br>Proportion:0.013 (n=4)<br>Cumulative:0.7825\",\"Bin: [1274.11, 1339.43)<br>Observed:<br>1320.1<br>1331.41<br>Proportion:0.0065 (n=2)<br>Cumulative:0.789\",\"Bin: [1339.43, 1408.1)<br>Observed:<br>1342.2<br>1352.12<br>1361.54<br>1361.74<br>1372.11<br>1378.97<br>1391.64<br>1399.87<br>Proportion:0.026 (n=8)<br>Cumulative:0.8149\",\"Bin: [1408.1, 1480.3)<br>Observed:<br>1409.92<br>1418.29<br>1426.1<br>1428.19<br>1459.07<br>1470.21<br>Proportion:0.0195 (n=6)<br>Cumulative:0.8344\",\"Bin: [1480.3, 1556.2)<br>Observed:<br>1487.72<br>1509.36<br>1519.35<br>1523.35<br>1533.58<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8506\",\"Bin: [1556.2, 1635.98)<br>Observed:<br>1566.4<br>1576.48<br>1594.35<br>1602.05<br>1606.7<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8669\",\"Bin: [1635.98, 1719.86)<br>Observed:<br>1658.06<br>1665.54<br>1673.74<br>1681.54<br>Proportion:0.013 (n=4)<br>Cumulative:0.8799\",\"\",\"Bin: [1808.04, 1900.74)<br>Observed:<br>1824.41<br>1839.47<br>1844.06<br>1885.45<br>1890.76<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8961\",\"Bin: [1900.74, 1998.2)<br>Observed:<br>1961.64<br>1963.98<br>1983.04<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9058\",\"Bin: [1998.2, 2100.65)<br>Observed:<br>2020.89<br>2079.61<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9123\",\"Bin: [2100.65, 2208.35)<br>Observed:<br>2122.03<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9156\",\"Bin: [2208.35, 2321.57)<br>Observed:<br>2281.31<br>2319.04<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9221\",\"Bin: [2321.57, 2440.6)<br>Observed:<br>2336.58<br>2356.74<br>2371.32<br>2388.32<br>Proportion:0.013 (n=4)<br>Cumulative:0.9351\",\"Bin: [2440.6, 2565.73)<br>Observed:<br>2441.67<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9383\",\"Bin: [2565.73, 2697.28)<br>Observed:<br>2595.62<br>2686.01<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9448\",\"Bin: [2697.28, 2835.57)<br>Observed:<br>2702.45<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9481\",\"Bin: [2835.57, 2980.96)<br>Observed:<br>2978.37<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9513\",\"Bin: [2980.96, 3133.79)<br>Observed:<br>2982.45<br>3000.33<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9578\",\"Bin: [3133.79, 3294.47)<br>Observed:<br>3274.7<br>3290.68<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"\",\"Bin: [3463.38, 3640.95)<br>Observed:<br>3483.94<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9675\",\"\",\"\",\"Bin: [4023.87, 4230.18)<br>Observed:<br>4192.53<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"Bin: [4230.18, 4447.07)<br>Observed:<br>4235.51<br>4240.08<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9773\",\"\",\"\",\"Bin: [4914.77, 5166.75)<br>Observed:<br>5030.99<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"\",\"\",\"\",\"Bin: [6002.91, 6310.69)<br>Observed:<br>6006.29<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9838\",\"Bin: [6310.69, 6634.24)<br>Observed:<br>6541.28<br>Proportion:0.0032 (n=1)<br>Cumulative:0.987\",\"Bin: [6634.24, 6974.39)<br>Observed:<br>6945.17<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9903\",\"Bin: [6974.39, 7331.97)<br>Observed:<br>7328.31<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9935\",\"\",\"\",\"\",\"\",\"Bin: [8955.29, 9414.44)<br>Observed:<br>9340.17<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9968\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [12708.2, 13359.7]<br>Observed:<br>12859.7<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  230.8  </font><font size="2">  281.1  </font><font size="3">  438.9  </font><font size="4"><strong>  700.6  </strong></font><font size="3">  1109.7  </font><font size="2">  1962.3  </font><font size="1">  2881.8  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Alanine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">649.7</td>
+<td headers="Gmd" class="gt_row gt_right">667.7</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-aa7448a19e84c984e233" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-aa7448a19e84c984e233">{"x":{"values":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2,1,0,2,3,1,0,2,1,8,2,4,2,2,4,10,5,5,11,6,8,6,10,5,9,6,6,6,9,5,10,6,6,8,4,4,8,4,5,9,7,7,8,5,4,3,2,4,7,1,5,3,1,3,2,3,0,1,2,4,5,0,1,1,2,1,1,4,0,1,2,2,1,1,0,2,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [28.5027, 29.9641)<br>Observed:<br>29.4967<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [66.6863, 70.1054)<br>Observed:<br>68.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"\",\"\",\"Bin: [77.4785, 81.4509)<br>Observed:<br>78.8886<br>79.4095<br>Proportion:0.0065 (n=2)<br>Cumulative:0.013\",\"Bin: [81.4509, 85.6269)<br>Observed:<br>83.718<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0162\",\"\",\"Bin: [90.0171, 94.6324)<br>Observed:<br>90.5876<br>92.733<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0227\",\"Bin: [94.6324, 99.4843)<br>Observed:<br>95.5129<br>95.8458<br>96.353<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0325\",\"Bin: [99.4843, 104.585)<br>Observed:<br>100.066<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0357\",\"\",\"Bin: [109.947, 115.584)<br>Observed:<br>111.063<br>112.803<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0422\",\"Bin: [115.584, 121.51)<br>Observed:<br>116.378<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0455\",\"Bin: [121.51, 127.74)<br>Observed:<br>121.624<br>122.062<br>124.654<br>125.069<br>125.196<br>125.283<br>125.3<br>126.25<br>Proportion:0.026 (n=8)<br>Cumulative:0.0714\",\"Bin: [127.74, 134.29)<br>Observed:<br>129.985<br>134.13<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0779\",\"Bin: [134.29, 141.175)<br>Observed:<br>134.495<br>135.901<br>137.629<br>138.113<br>Proportion:0.013 (n=4)<br>Cumulative:0.0909\",\"Bin: [141.175, 148.413)<br>Observed:<br>141.633<br>142.178<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0974\",\"Bin: [148.413, 156.022)<br>Observed:<br>154.137<br>155.383<br>Proportion:0.0065 (n=2)<br>Cumulative:0.1039\",\"Bin: [156.022, 164.022)<br>Observed:<br>157.229<br>157.906<br>158.162<br>160.671<br>Proportion:0.013 (n=4)<br>Cumulative:0.1169\",\"Bin: [164.022, 172.431)<br>Observed:<br>166<br>167.2<br>168.072<br>169.566<br>170.037<br>170.066<br>170.278<br>170.596<br>170.661<br>172.198<br>Proportion:0.0325 (n=10)<br>Cumulative:0.1494\",\"Bin: [172.431, 181.272)<br>Observed:<br>172.957<br>173.921<br>175.115<br>175.387<br>180.671<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1656\",\"Bin: [181.272, 190.566)<br>Observed:<br>182.874<br>183.146<br>184.948<br>187.7<br>190.565<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1818\",\"Bin: [190.566, 200.337)<br>Observed:<br>191.755 - 199.956 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.2175\",\"Bin: [200.337, 210.608)<br>Observed:<br>201.539<br>201.6<br>201.631<br>202.893<br>207.269<br>208.656<br>Proportion:0.0195 (n=6)<br>Cumulative:0.237\",\"Bin: [210.608, 221.406)<br>Observed:<br>211.371<br>211.654<br>214.191<br>214.615<br>214.973<br>216.655<br>217.73<br>218.212<br>Proportion:0.026 (n=8)<br>Cumulative:0.263\",\"Bin: [221.406, 232.758)<br>Observed:<br>223.181<br>223.795<br>225.936<br>230.336<br>230.702<br>232.322<br>Proportion:0.0195 (n=6)<br>Cumulative:0.2825\",\"Bin: [232.758, 244.692)<br>Observed:<br>232.775<br>234.088<br>236.17<br>237.347<br>238.098<br>240.198<br>241.6<br>241.628<br>243.855<br>244.03<br>Proportion:0.0325 (n=10)<br>Cumulative:0.3149\",\"Bin: [244.692, 257.238)<br>Observed:<br>247.008<br>249.74<br>254.695<br>254.767<br>257.184<br>Proportion:0.0162 (n=5)<br>Cumulative:0.3312\",\"Bin: [257.238, 270.426)<br>Observed:<br>258.171<br>258.305<br>259.78<br>265.311<br>265.577<br>267.063<br>268.895<br>269.594<br>269.9<br>Proportion:0.0292 (n=9)<br>Cumulative:0.3604\",\"Bin: [270.426, 284.291)<br>Observed:<br>271.693<br>276.012<br>276.187<br>278.947<br>279.222<br>282.886<br>Proportion:0.0195 (n=6)<br>Cumulative:0.3799\",\"Bin: [284.291, 298.867)<br>Observed:<br>285.785<br>286.077<br>295.982<br>296.277<br>297.56<br>298.048<br>Proportion:0.0195 (n=6)<br>Cumulative:0.3994\",\"Bin: [298.867, 314.191)<br>Observed:<br>301.329<br>305.672<br>305.936<br>307.828<br>309.841<br>313.41<br>Proportion:0.0195 (n=6)<br>Cumulative:0.4188\",\"Bin: [314.191, 330.3)<br>Observed:<br>314.484<br>317.325<br>319.2<br>320.921<br>323.1<br>323.465<br>324.929<br>327.519<br>329.082<br>Proportion:0.0292 (n=9)<br>Cumulative:0.4481\",\"Bin: [330.3, 347.234)<br>Observed:<br>334.688<br>338.457<br>345.997<br>346.049<br>346.462<br>Proportion:0.0162 (n=5)<br>Cumulative:0.4643\",\"Bin: [347.234, 365.037)<br>Observed:<br>347.359<br>349.85<br>354.631<br>355.015<br>356.206<br>358.74<br>358.969<br>363.213<br>364.596<br>364.818<br>Proportion:0.0325 (n=10)<br>Cumulative:0.4968\",\"Bin: [365.037, 383.753)<br>Observed:<br>374.315<br>376.58<br>379.433<br>379.822<br>380.129<br>382.026<br>Proportion:0.0195 (n=6)<br>Cumulative:0.5162\",\"Bin: [383.753, 403.429)<br>Observed:<br>384.413<br>392.328<br>394.624<br>395.988<br>396.023<br>397.44<br>Proportion:0.0195 (n=6)<br>Cumulative:0.5357\",\"Bin: [403.429, 424.113)<br>Observed:<br>407.5<br>408.4<br>411.669<br>413.453<br>413.512<br>416.4<br>418.874<br>423.23<br>Proportion:0.026 (n=8)<br>Cumulative:0.5617\",\"Bin: [424.113, 445.858)<br>Observed:<br>429.507<br>430.433<br>443.151<br>443.346<br>Proportion:0.013 (n=4)<br>Cumulative:0.5747\",\"Bin: [445.858, 468.717)<br>Observed:<br>455.953<br>458.193<br>458.202<br>461.199<br>Proportion:0.013 (n=4)<br>Cumulative:0.5877\",\"Bin: [468.717, 492.749)<br>Observed:<br>469.075<br>473.962<br>474.845<br>481.206<br>482.396<br>487.525<br>487.868<br>488.292<br>Proportion:0.026 (n=8)<br>Cumulative:0.6136\",\"Bin: [492.749, 518.013)<br>Observed:<br>495.14<br>508.82<br>509.202<br>517.506<br>Proportion:0.013 (n=4)<br>Cumulative:0.6266\",\"Bin: [518.013, 544.572)<br>Observed:<br>523.129<br>530.651<br>531.517<br>541.829<br>544.06<br>Proportion:0.0162 (n=5)<br>Cumulative:0.6429\",\"Bin: [544.572, 572.493)<br>Observed:<br>548.009<br>548.188<br>548.452<br>565.964<br>567.732<br>568.118<br>569.975<br>570.68<br>571.25<br>Proportion:0.0292 (n=9)<br>Cumulative:0.6721\",\"Bin: [572.493, 601.845)<br>Observed:<br>577.218<br>579.418<br>579.983<br>586.776<br>591.503<br>594.644<br>595.233<br>Proportion:0.0227 (n=7)<br>Cumulative:0.6948\",\"Bin: [601.845, 632.702)<br>Observed:<br>603.866<br>605.115<br>606.813<br>613.233<br>620.459<br>621.752<br>622.2<br>Proportion:0.0227 (n=7)<br>Cumulative:0.7175\",\"Bin: [632.702, 665.142)<br>Observed:<br>634.229<br>634.5<br>641.716<br>645.219<br>646.444<br>646.985<br>651.078<br>662.448<br>Proportion:0.026 (n=8)<br>Cumulative:0.7435\",\"Bin: [665.142, 699.244)<br>Observed:<br>672.396<br>676.805<br>677.464<br>686.994<br>696.031<br>Proportion:0.0162 (n=5)<br>Cumulative:0.7597\",\"Bin: [699.244, 735.095)<br>Observed:<br>709.756<br>712.272<br>712.5<br>730.901<br>Proportion:0.013 (n=4)<br>Cumulative:0.7727\",\"Bin: [735.095, 772.784)<br>Observed:<br>738.845<br>752.608<br>763.341<br>Proportion:0.0097 (n=3)<br>Cumulative:0.7825\",\"Bin: [772.784, 812.406)<br>Observed:<br>781.546<br>808.729<br>Proportion:0.0065 (n=2)<br>Cumulative:0.789\",\"Bin: [812.406, 854.059)<br>Observed:<br>819.151<br>831.022<br>843.587<br>850.755<br>Proportion:0.013 (n=4)<br>Cumulative:0.8019\",\"Bin: [854.059, 897.847)<br>Observed:<br>854.47<br>856.533<br>863.302<br>865.953<br>872.751<br>879.587<br>879.783<br>Proportion:0.0227 (n=7)<br>Cumulative:0.8247\",\"Bin: [897.847, 943.881)<br>Observed:<br>933.897<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8279\",\"Bin: [943.881, 992.275)<br>Observed:<br>949.223<br>953.993<br>964.04<br>985.704<br>989.156<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8442\",\"Bin: [992.275, 1043.15)<br>Observed:<br>1001.27<br>1005.35<br>1021.52<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8539\",\"Bin: [1043.15, 1096.63)<br>Observed:<br>1043.31<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8571\",\"Bin: [1096.63, 1152.86)<br>Observed:<br>1114.09<br>1124.84<br>1137.9<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8669\",\"Bin: [1152.86, 1211.97)<br>Observed:<br>1173.1<br>1194.62<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8734\",\"Bin: [1211.97, 1274.11)<br>Observed:<br>1246.96<br>1251.97<br>1268.78<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8831\",\"\",\"Bin: [1339.43, 1408.1)<br>Observed:<br>1389.25<br>Proportion:0.0032 (n=1)<br>Cumulative:0.8864\",\"Bin: [1408.1, 1480.3)<br>Observed:<br>1435.72<br>1462.37<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8929\",\"Bin: [1480.3, 1556.2)<br>Observed:<br>1501.15<br>1507.87<br>1530.94<br>1532.48<br>Proportion:0.013 (n=4)<br>Cumulative:0.9058\",\"Bin: [1556.2, 1635.98)<br>Observed:<br>1561.7<br>1575.1<br>1583.1<br>1593.01<br>1616.9<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9221\",\"\",\"Bin: [1719.86, 1808.04)<br>Observed:<br>1720.9<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9253\",\"Bin: [1808.04, 1900.74)<br>Observed:<br>1824.95<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9286\",\"Bin: [1900.74, 1998.2)<br>Observed:<br>1925.74<br>1966.47<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9351\",\"Bin: [1998.2, 2100.65)<br>Observed:<br>2094.31<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9383\",\"Bin: [2100.65, 2208.35)<br>Observed:<br>2105.6<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9416\",\"Bin: [2208.35, 2321.57)<br>Observed:<br>2212.49<br>2258.2<br>2272.21<br>2314.51<br>Proportion:0.013 (n=4)<br>Cumulative:0.9545\",\"\",\"Bin: [2440.6, 2565.73)<br>Observed:<br>2451.8<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9578\",\"Bin: [2565.73, 2697.28)<br>Observed:<br>2624.21<br>2634.79<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"Bin: [2697.28, 2835.57)<br>Observed:<br>2725.48<br>2779.89<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9708\",\"Bin: [2835.57, 2980.96)<br>Observed:<br>2929.36<br>Proportion:0.0032 (n=1)<br>Cumulative:0.974\",\"Bin: [2980.96, 3133.79)<br>Observed:<br>3014.89<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9773\",\"\",\"Bin: [3294.47, 3463.38)<br>Observed:<br>3371.4<br>3375.05<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9838\",\"\",\"Bin: [3640.95, 3827.63)<br>Observed:<br>3644.28<br>3670.67<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9903\",\"\",\"\",\"\",\"Bin: [4447.07, 4675.07)<br>Observed:<br>4613.35<br>4643.49<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9968\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [7331.97, 7707.89]<br>Observed:<br>7339.9<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  123.0  </font><font size="2">  155.0  </font><font size="3">  214.9  </font><font size="4"><strong>  375.4  </strong></font><font size="3">  677.0  </font><font size="2">  1514.8  </font><font size="1">  2267.3  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Valine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">764.3</td>
+<td headers="Gmd" class="gt_row gt_right">1469</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-ce0a26417278341e5ea8" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-ce0a26417278341e5ea8">{"x":{"values":[1,0,0,0,0,0,0,0,0,0,1,1,3,1,0,0,0,1,2,5,0,1,0,3,7,7,6,5,7,19,17,26,26,38,20,32,19,16,17,11,3,2,1,1,2,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.904837, 1)<br>Observed:<br>0.9922<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.71724<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"Bin: [2.71828, 3.00417)<br>Observed:<br>2.78038<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0097\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.02394<br>3.14974<br>3.25714<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0195\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.55827<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0227\",\"\",\"\",\"\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>5.416<br>Proportion:0.0032 (n=1)<br>Cumulative:0.026\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.80425<br>6.02871<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0325\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.1<br>6.56245<br>6.62772<br>6.64295<br>6.67081<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0487\",\"\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.42406<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0519\",\"\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.14976<br>9.28567<br>9.41831<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0617\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10.064<br>10.1237<br>10.2<br>10.2589<br>10.4328<br>10.6667<br>10.7233<br>Proportion:0.0227 (n=7)<br>Cumulative:0.0844\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.0451<br>11.1198<br>11.3201<br>11.475<br>11.4818<br>11.9804<br>12.079<br>Proportion:0.0227 (n=7)<br>Cumulative:0.1071\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.2772<br>12.4094<br>12.7523<br>12.7812<br>13.01<br>13.0929<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1266\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.5316<br>13.7479<br>14.0319<br>14.0575<br>14.7723<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1429\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>15.1161<br>15.5725<br>15.9734<br>16.1243<br>16.2744<br>16.3939<br>16.4368<br>Proportion:0.0227 (n=7)<br>Cumulative:0.1656\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.6313 - 18.0022 (19 distinct)<br>Proportion:0.0617 (n=19)<br>Cumulative:0.2273\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.214 - 20.0633 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.2825\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.1518 - 22.1089 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.3669\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.5117 - 24.5296 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.4513\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.6085 - 27.0673 (38 distinct)<br>Proportion:0.1234 (n=38)<br>Cumulative:0.5747\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.4926 - 29.5169 (20 distinct)<br>Proportion:0.0649 (n=20)<br>Cumulative:0.6396\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>30.0936 - 32.72 (32 distinct)<br>Proportion:0.1039 (n=32)<br>Cumulative:0.7435\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.3 - 36.3583 (19 distinct)<br>Proportion:0.0617 (n=19)<br>Cumulative:0.8052\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>36.6776 - 40.1499 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.8571\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>41.1381 - 44.6 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.9123\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>44.9734 - 49.1713 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.9481\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>50.2305<br>51.1974<br>51.4107<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9578\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>55.7681<br>58.7594<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>62.5905<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9675\",\"Bin: [66.6863, 73.6998)<br>Observed:<br>67.4363<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"Bin: [73.6998, 81.4509)<br>Observed:<br>75.2371<br>81.0775<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9773\",\"\",\"\",\"Bin: [99.4843, 109.947)<br>Observed:<br>105.224<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"Bin: [109.947, 121.51)<br>Observed:<br>111.08<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9838\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45318<br>45370<br>45431<br>45556<br>45560<br>Proportion:0.0162 (n=5)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  8.028  </font><font size="2">  11.831  </font><font size="3">  18.864  </font><font size="4"><strong>  25.490  </strong></font><font size="3">  33.439  </font><font size="2">  44.140  </font><font size="1">  49.860  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Cysteine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">193</td>
+<td headers="Info" class="gt_row gt_right">0.947</td>
+<td headers="Mean" class="gt_row gt_right">895.8</td>
+<td headers="Gmd" class="gt_row gt_right">1754</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-9702396ecd2da2b97927" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-9702396ecd2da2b97927">{"x":{"values":[1,0,0,0,0,116,0,0,0,1,0,1,2,1,3,0,1,1,0,1,5,4,6,8,8,5,3,9,7,13,15,7,9,7,18,9,12,5,6,5,4,2,2,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.606531, 0.67032)<br>Observed:<br>0.643713<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"\",\"\",\"Bin: [1, 1.10517)<br>Observed:<br>0 (116)<br>Proportion:0.3766 (n=116)<br>Cumulative:0.3799\",\"\",\"\",\"\",\"Bin: [1.49182, 1.64872)<br>Observed:<br>1.49463<br>Proportion:0.0032 (n=1)<br>Cumulative:0.3831\",\"\",\"Bin: [1.82212, 2.01375)<br>Observed:<br>1.92169<br>Proportion:0.0032 (n=1)<br>Cumulative:0.3864\",\"Bin: [2.01375, 2.22554)<br>Observed:<br>2.1296<br>2.13327<br>Proportion:0.0065 (n=2)<br>Cumulative:0.3929\",\"Bin: [2.22554, 2.4596)<br>Observed:<br>2.45932<br>Proportion:0.0032 (n=1)<br>Cumulative:0.3961\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.47798<br>2.51852<br>2.66918<br>Proportion:0.0097 (n=3)<br>Cumulative:0.4058\",\"\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.13495<br>Proportion:0.0032 (n=1)<br>Cumulative:0.4091\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.56136<br>Proportion:0.0032 (n=1)<br>Cumulative:0.4123\",\"\",\"Bin: [4.0552, 4.48169)<br>Observed:<br>4.31864<br>Proportion:0.0032 (n=1)<br>Cumulative:0.4156\",\"Bin: [4.48169, 4.95303)<br>Observed:<br>4.4833<br>4.7<br>4.73524<br>4.82699<br>4.91444<br>Proportion:0.0162 (n=5)<br>Cumulative:0.4318\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>5.1463<br>5.31671<br>5.34568<br>5.47171<br>Proportion:0.013 (n=4)<br>Cumulative:0.4448\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.49412<br>5.7569<br>5.77109<br>5.81366<br>5.88655<br>5.91926<br>Proportion:0.0195 (n=6)<br>Cumulative:0.4643\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.07114<br>6.16842<br>6.21814<br>6.24273<br>6.4974<br>6.61348<br>6.66531<br>6.67746<br>Proportion:0.026 (n=8)<br>Cumulative:0.4903\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.70546<br>6.94645<br>7.02381<br>7.1<br>7.13095<br>7.13267<br>7.23637<br>7.3027<br>Proportion:0.026 (n=8)<br>Cumulative:0.5162\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.51594<br>7.58258<br>7.88363<br>7.91728<br>7.978<br>Proportion:0.0162 (n=5)<br>Cumulative:0.5325\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.80129<br>8.83702<br>8.97344<br>Proportion:0.0097 (n=3)<br>Cumulative:0.5422\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.06645<br>9.39961<br>9.41785<br>9.42784<br>9.47036<br>9.50962<br>9.61869<br>9.74813<br>9.94493<br>Proportion:0.0292 (n=9)<br>Cumulative:0.5714\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10.2104<br>10.2939<br>10.39<br>10.4102<br>10.8646<br>10.8731<br>10.8751<br>Proportion:0.0227 (n=7)<br>Cumulative:0.5942\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.0902 - 12.062 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.6364\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.2 - 13.4443 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.6851\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.4843<br>14.0504<br>14.2444<br>14.2915<br>14.4809<br>14.8269<br>14.8271<br>Proportion:0.0227 (n=7)<br>Cumulative:0.7078\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>14.9533<br>15.2558<br>15.4257<br>15.4748<br>15.5602<br>15.8709<br>15.9275<br>16.1061<br>16.1971<br>Proportion:0.0292 (n=9)<br>Cumulative:0.737\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.4526<br>16.5054<br>16.5546<br>16.7868<br>17.0575<br>17.1861<br>17.3509<br>Proportion:0.0227 (n=7)<br>Cumulative:0.7597\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.2081 - 20.0828 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.8182\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.1059<br>20.32<br>20.3958<br>20.5033<br>21.0748<br>21.1398<br>21.2176<br>21.5081<br>21.7018<br>Proportion:0.0292 (n=9)<br>Cumulative:0.8474\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.3377 - 24.502 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.8864\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.9459<br>25.6476<br>26.1943<br>26.5289<br>26.6647<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9026\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.5786<br>27.7966<br>28.1449<br>28.3869<br>28.5269<br>28.9659<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9221\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>30.5466<br>30.9017<br>31.341<br>32.5924<br>32.7573<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9383\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.1744<br>33.3328<br>34.0657<br>34.3481<br>Proportion:0.013 (n=4)<br>Cumulative:0.9513\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>38.4093<br>39.8161<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9578\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>41.3228<br>43.4675<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>48.4796<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9675\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>52.3051<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>58.5822<br>Proportion:0.0032 (n=1)<br>Cumulative:0.974\",\"\",\"Bin: [66.6863, 73.6998)<br>Observed:<br>69.7017<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9773\",\"\",\"Bin: [81.4509, 90.0171)<br>Observed:<br>82.317<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45387<br>45416<br>45457<br>45537<br>45541<br>45543<br>Proportion:0.0195 (n=6)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  0.000  </font><font size="2">  0.000  </font><font size="3">  0.000  </font><font size="4"><strong>  7.062  </strong></font><font size="3">  16.854  </font><font size="2">  26.570  </font><font size="1">  34.249  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Taurine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">301</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">2604</td>
+<td headers="Gmd" class="gt_row gt_right">4041</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-2730e6d3a5dcf75adbee" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-2730e6d3a5dcf75adbee">{"x":{"values":[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,2,1,2,1,1,1,4,2,1,1,2,4,4,3,4,5,2,6,8,12,9,16,11,12,13,15,10,16,16,15,9,7,9,10,10,2,7,5,2,3,5,4,4,2,4,3,1,1,3,1,1,1,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [1, 1.10517)<br>Observed:<br>0 (8)<br>Proportion:0.026 (n=8)<br>Cumulative:0.026\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>12.04<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0292\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>26.9115<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0325\",\"\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>32.3933<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0357\",\"\",\"\",\"\",\"\",\"\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>58.616<br>59.8538<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0422\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>62.2998<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0455\",\"Bin: [66.6863, 73.6998)<br>Observed:<br>66.9726<br>73.5372<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0519\",\"Bin: [73.6998, 81.4509)<br>Observed:<br>77.0449<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0552\",\"Bin: [81.4509, 90.0171)<br>Observed:<br>85.423<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0584\",\"Bin: [90.0171, 99.4843)<br>Observed:<br>90.0927<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0617\",\"Bin: [99.4843, 109.947)<br>Observed:<br>103.796<br>104.352<br>107.187<br>108.808<br>Proportion:0.013 (n=4)<br>Cumulative:0.0747\",\"Bin: [109.947, 121.51)<br>Observed:<br>113.179<br>118.898<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0812\",\"Bin: [121.51, 134.29)<br>Observed:<br>132.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0844\",\"Bin: [134.29, 148.413)<br>Observed:<br>136.941<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0877\",\"Bin: [148.413, 164.022)<br>Observed:<br>154.462<br>158.456<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0942\",\"Bin: [164.022, 181.272)<br>Observed:<br>171.465<br>172.637<br>176.454<br>180.269<br>Proportion:0.013 (n=4)<br>Cumulative:0.1071\",\"Bin: [181.272, 200.337)<br>Observed:<br>190.416<br>195.895<br>198.131<br>198.512<br>Proportion:0.013 (n=4)<br>Cumulative:0.1201\",\"Bin: [200.337, 221.406)<br>Observed:<br>206.464<br>214.921<br>219.5<br>Proportion:0.0097 (n=3)<br>Cumulative:0.1299\",\"Bin: [221.406, 244.692)<br>Observed:<br>224.153<br>230.728<br>235.104<br>239.285<br>Proportion:0.013 (n=4)<br>Cumulative:0.1429\",\"Bin: [244.692, 270.426)<br>Observed:<br>250.123<br>253.555<br>256.765<br>261.86<br>265.67<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1591\",\"Bin: [270.426, 298.867)<br>Observed:<br>271.405<br>292.6<br>Proportion:0.0065 (n=2)<br>Cumulative:0.1656\",\"Bin: [298.867, 330.3)<br>Observed:<br>304.765<br>309.5<br>311.214<br>316.394<br>324.137<br>327.286<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1851\",\"Bin: [330.3, 365.037)<br>Observed:<br>334.541<br>335.697<br>343.458<br>345.297<br>352.161<br>358.212<br>360.821<br>363.433<br>Proportion:0.026 (n=8)<br>Cumulative:0.211\",\"Bin: [365.037, 403.429)<br>Observed:<br>368.646 - 401.059 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.25\",\"Bin: [403.429, 445.858)<br>Observed:<br>406.632<br>408.082<br>409.766<br>422.55<br>427.038<br>428.113<br>429.764<br>432.731<br>442.184<br>Proportion:0.0292 (n=9)<br>Cumulative:0.2792\",\"Bin: [445.858, 492.749)<br>Observed:<br>447.402 - 489.2 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.3312\",\"Bin: [492.749, 544.572)<br>Observed:<br>500.143 - 531.6 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.3669\",\"Bin: [544.572, 601.845)<br>Observed:<br>554.996 - 599.617 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.4058\",\"Bin: [601.845, 665.142)<br>Observed:<br>602.491 - 662.34 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.4481\",\"Bin: [665.142, 735.095)<br>Observed:<br>676.045 - 729.19 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.4968\",\"Bin: [735.095, 812.406)<br>Observed:<br>738.702<br>743.6<br>755.991<br>765.31<br>767.271<br>773.27<br>788.685<br>790.504<br>798.2<br>799.982<br>Proportion:0.0325 (n=10)<br>Cumulative:0.5292\",\"Bin: [812.406, 897.847)<br>Observed:<br>815.801 - 895.665 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.5812\",\"Bin: [897.847, 992.275)<br>Observed:<br>904.018 - 987.381 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.6331\",\"Bin: [992.275, 1096.63)<br>Observed:<br>993.718 - 1092.87 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.6818\",\"Bin: [1096.63, 1211.97)<br>Observed:<br>1110.73<br>1119.5<br>1132.72<br>1136.84<br>1152.42<br>1169.47<br>1172.06<br>1179.78<br>1186.06<br>Proportion:0.0292 (n=9)<br>Cumulative:0.711\",\"Bin: [1211.97, 1339.43)<br>Observed:<br>1252.62<br>1274.95<br>1281.51<br>1287.59<br>1289.87<br>1303.96<br>1316.61<br>Proportion:0.0227 (n=7)<br>Cumulative:0.7338\",\"Bin: [1339.43, 1480.3)<br>Observed:<br>1340.18<br>1354.48<br>1362.33<br>1363.85<br>1365.64<br>1365.84<br>1407.75<br>1430.85<br>1459.74<br>Proportion:0.0292 (n=9)<br>Cumulative:0.763\",\"Bin: [1480.3, 1635.98)<br>Observed:<br>1491.51<br>1503.8<br>1509.46<br>1515.41<br>1516.49<br>1539.34<br>1547.29<br>1556.74<br>1591.68<br>1608.92<br>Proportion:0.0325 (n=10)<br>Cumulative:0.7955\",\"Bin: [1635.98, 1808.04)<br>Observed:<br>1643.64<br>1652.36<br>1655.92<br>1663.18<br>1669.16<br>1686.91<br>1695.33<br>1770.7<br>1787.35<br>1801.14<br>Proportion:0.0325 (n=10)<br>Cumulative:0.8279\",\"Bin: [1808.04, 1998.2)<br>Observed:<br>1900.68<br>1927.38<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8344\",\"Bin: [1998.2, 2208.35)<br>Observed:<br>2013.31<br>2046.1<br>2058.7<br>2088.2<br>2133.42<br>2174.12<br>2198.1<br>Proportion:0.0227 (n=7)<br>Cumulative:0.8571\",\"Bin: [2208.35, 2440.6)<br>Observed:<br>2248.72<br>2291.34<br>2349.2<br>2432.9<br>2435.69<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8734\",\"Bin: [2440.6, 2697.28)<br>Observed:<br>2445.46<br>2479.58<br>Proportion:0.0065 (n=2)<br>Cumulative:0.8799\",\"Bin: [2697.28, 2980.96)<br>Observed:<br>2891.84<br>2895.42<br>2963.25<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8896\",\"Bin: [2980.96, 3294.47)<br>Observed:<br>3027.54<br>3061.22<br>3188.18<br>3196.05<br>3276.77<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9058\",\"Bin: [3294.47, 3640.95)<br>Observed:<br>3294.77<br>3332.23<br>3362.53<br>3555.26<br>Proportion:0.013 (n=4)<br>Cumulative:0.9188\",\"Bin: [3640.95, 4023.87)<br>Observed:<br>3719.22<br>3733.43<br>3810.21<br>4004<br>Proportion:0.013 (n=4)<br>Cumulative:0.9318\",\"Bin: [4023.87, 4447.07)<br>Observed:<br>4306.16<br>4422.01<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9383\",\"Bin: [4447.07, 4914.77)<br>Observed:<br>4529.16<br>4539.06<br>4660.24<br>4867.9<br>Proportion:0.013 (n=4)<br>Cumulative:0.9513\",\"Bin: [4914.77, 5431.66)<br>Observed:<br>4969.17<br>5183.53<br>5282.07<br>Proportion:0.0097 (n=3)<br>Cumulative:0.961\",\"Bin: [5431.66, 6002.91)<br>Observed:<br>5479.37<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9643\",\"Bin: [6002.91, 6634.24)<br>Observed:<br>6143.32<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9675\",\"Bin: [6634.24, 7331.97)<br>Observed:<br>7120.25<br>7166.54<br>7293.41<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9773\",\"Bin: [7331.97, 8103.08)<br>Observed:<br>7689.32<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"Bin: [8103.08, 8955.29)<br>Observed:<br>8628.17<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9838\",\"Bin: [8955.29, 9897.13)<br>Observed:<br>8969.74<br>Proportion:0.0032 (n=1)<br>Cumulative:0.987\",\"\",\"Bin: [10938, 12088.4)<br>Observed:<br>10940.5<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9903\",\"Bin: [12088.4, 13359.7)<br>Observed:<br>13049.9<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9935\",\"\",\"\",\"Bin: [16317.6, 18033.7)<br>Observed:<br>16881.1<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9968\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [362217, 400312]<br>Observed:<br>396077<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  74.76  </font><font size="2">  175.31  </font><font size="3">  405.24  </font><font size="4"><strong>  741.15  </strong></font><font size="3">  1365.69  </font><font size="2">  3190.54  </font><font size="1">  4795.22  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Isoleucine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">1194</td>
+<td headers="Gmd" class="gt_row gt_right">2314</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-210e227be5839ed9460a" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-210e227be5839ed9460a">{"x":{"values":[1,0,0,0,0,1,0,0,0,0,1,0,3,3,4,6,4,8,4,10,8,17,18,13,16,26,17,23,22,18,22,7,8,9,11,3,6,1,5,1,2,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.904837, 1)<br>Observed:<br>0.988662<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"\",\"\",\"Bin: [1.49182, 1.64872)<br>Observed:<br>1.52599<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"\",\"\",\"\",\"\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.58973<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0097\",\"\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.10636<br>3.17263<br>3.28332<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0195\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.33276<br>3.64559<br>3.66403<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0292\",\"Bin: [3.6693, 4.0552)<br>Observed:<br>3.68045<br>3.8516<br>3.8971<br>3.91464<br>Proportion:0.013 (n=4)<br>Cumulative:0.0422\",\"Bin: [4.0552, 4.48169)<br>Observed:<br>4.06597<br>4.225<br>4.2537<br>4.29792<br>4.34953<br>4.44814<br>Proportion:0.0195 (n=6)<br>Cumulative:0.0617\",\"Bin: [4.48169, 4.95303)<br>Observed:<br>4.50583<br>4.67177<br>4.83827<br>4.87628<br>Proportion:0.013 (n=4)<br>Cumulative:0.0747\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>5.01122<br>5.03577<br>5.04243<br>5.1258<br>5.36756<br>5.41071<br>5.43193<br>5.45891<br>Proportion:0.026 (n=8)<br>Cumulative:0.1006\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.60046<br>5.61936<br>5.64517<br>5.9<br>Proportion:0.013 (n=4)<br>Cumulative:0.1136\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.3184<br>6.32577<br>6.38584<br>6.40339<br>6.47154<br>6.5682<br>6.60921<br>6.64081<br>6.66614<br>6.68036<br>Proportion:0.0325 (n=10)<br>Cumulative:0.1461\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.70186<br>6.7057<br>6.84133<br>6.988<br>7.02781<br>7.17313<br>7.30808<br>7.35451<br>Proportion:0.026 (n=8)<br>Cumulative:0.1721\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.43384 - 8.12886 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.2273\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.16634 - 8.95772 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.2857\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.0605 - 9.83644 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.3279\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>9.99253 - 10.9871 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.3799\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.046 - 12.1529 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.4643\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.2186 - 13.3423 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.5195\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.497 - 14.6384 (23 distinct)<br>Proportion:0.0747 (n=23)<br>Cumulative:0.5942\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>14.9019 - 16.4 (22 distinct)<br>Proportion:0.0714 (n=22)<br>Cumulative:0.6656\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.4755 - 18.1567 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.724\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.1974 - 19.8462 (22 distinct)<br>Proportion:0.0714 (n=22)<br>Cumulative:0.7955\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.0956<br>20.1134<br>20.1734<br>20.2127<br>20.333<br>20.9755<br>21.6162<br>Proportion:0.0227 (n=7)<br>Cumulative:0.8182\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.7794<br>22.7803<br>22.8923<br>22.9315<br>23.0483<br>23.5735<br>24.0942<br>24.1419<br>Proportion:0.026 (n=8)<br>Cumulative:0.8442\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.8668<br>25.0138<br>25.1915<br>25.3263<br>25.798<br>25.9074<br>25.9767<br>26.2595<br>26.69<br>Proportion:0.0292 (n=9)<br>Cumulative:0.8734\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.2132 - 29.8602 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.9091\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>31.1366<br>31.9396<br>32.6676<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9188\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.7315<br>34.2368<br>34.8318<br>35.177<br>36.3224<br>36.5191<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9383\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>36.7177<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9416\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>40.5232<br>41.141<br>41.6627<br>43.2569<br>44.1554<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9578\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>46.1549<br>Proportion:0.0032 (n=1)<br>Cumulative:0.961\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>50.928<br>53.2931<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9675\",\"\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>63.4759<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"\",\"\",\"\",\"\",\"\",\"Bin: [109.947, 121.51)<br>Observed:<br>110.891<br>Proportion:0.0032 (n=1)<br>Cumulative:0.974\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45298<br>45299<br>45358<br>45426<br>45451<br>45478<br>45482<br>45486<br>Proportion:0.026 (n=8)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  4.269  </font><font size="2">  5.558  </font><font size="3">  8.600  </font><font size="4"><strong>  12.935  </strong></font><font size="3">  18.512  </font><font size="2">  28.446  </font><font size="1">  41.480  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Leucine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">616.3</td>
+<td headers="Gmd" class="gt_row gt_right">1184</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-eb36ec4806cbb52e30c1" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-eb36ec4806cbb52e30c1">{"x":{"values":[1,1,0,0,0,0,1,0,0,0,0,0,0,0,1,2,3,0,3,2,0,0,0,2,0,2,2,2,5,4,7,12,11,19,15,20,25,26,24,21,19,17,14,10,8,10,7,2,0,4,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.548812, 0.606531)<br>Observed:<br>0.59669<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"Bin: [0.606531, 0.67032)<br>Observed:<br>0.637849<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"\",\"\",\"\",\"\",\"Bin: [1, 1.10517)<br>Observed:<br>1.1<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0097\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [2.22554, 2.4596)<br>Observed:<br>2.34615<br>Proportion:0.0032 (n=1)<br>Cumulative:0.013\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.56215<br>2.64875<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0195\",\"Bin: [2.71828, 3.00417)<br>Observed:<br>2.82931<br>2.94657<br>2.99455<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0292\",\"\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.35742<br>3.60123<br>3.66318<br>Proportion:0.0097 (n=3)<br>Cumulative:0.039\",\"Bin: [3.6693, 4.0552)<br>Observed:<br>3.89386<br>3.90251<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0455\",\"\",\"\",\"\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.82481<br>6.0354<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0519\",\"\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.86246<br>7.33459<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0584\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.92277<br>8.06757<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0649\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.4751<br>8.50063<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0714\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.19208<br>9.31929<br>9.46816<br>9.48771<br>9.88988<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0877\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10.3594<br>10.7555<br>10.8273<br>10.8286<br>Proportion:0.013 (n=4)<br>Cumulative:0.1006\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.1958<br>11.2818<br>11.6074<br>11.7053<br>11.7354<br>11.8784<br>11.9014<br>Proportion:0.0227 (n=7)<br>Cumulative:0.1234\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.3427 - 13.2363 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.1623\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.5648 - 14.8309 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.1981\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>14.9166 - 16.3078 (19 distinct)<br>Proportion:0.0617 (n=19)<br>Cumulative:0.2597\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.6712 - 18.0901 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.3084\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.1872 - 20.0513 (20 distinct)<br>Proportion:0.0649 (n=20)<br>Cumulative:0.3734\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.1535 - 21.9867 (25 distinct)<br>Proportion:0.0812 (n=25)<br>Cumulative:0.4545\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.3212 - 24.514 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.539\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.5472 - 27.079 (24 distinct)<br>Proportion:0.0779 (n=24)<br>Cumulative:0.6169\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.1215 - 29.7563 (21 distinct)<br>Proportion:0.0682 (n=21)<br>Cumulative:0.6851\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>30.1498 - 32.926 (19 distinct)<br>Proportion:0.0617 (n=19)<br>Cumulative:0.7468\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.1314 - 36.5276 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.8019\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>37.5147 - 40.0165 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.8474\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>40.5995<br>41.687<br>41.7905<br>41.8<br>41.8448<br>41.9446<br>42.0532<br>42.3207<br>42.3439<br>43.701<br>Proportion:0.0325 (n=10)<br>Cumulative:0.8799\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>45.131<br>45.4934<br>46.9098<br>47.2515<br>47.3713<br>47.7251<br>48.2<br>49.2466<br>Proportion:0.026 (n=8)<br>Cumulative:0.9058\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>50.5446<br>51.2321<br>51.2906<br>51.3819<br>51.7785<br>52.5403<br>53.0809<br>53.4<br>53.4401<br>54.1821<br>Proportion:0.0325 (n=10)<br>Cumulative:0.9383\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>54.7393<br>55.2286<br>56.5013<br>56.6682<br>57.97<br>58.722<br>60.0891<br>Proportion:0.0227 (n=7)<br>Cumulative:0.961\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>60.6843<br>65.9842<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9675\",\"\",\"Bin: [73.6998, 81.4509)<br>Observed:<br>74.4935<br>76.6115<br>77.3608<br>79.7029<br>Proportion:0.013 (n=4)<br>Cumulative:0.9805\",\"Bin: [81.4509, 90.0171)<br>Observed:<br>82.4294<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9838\",\"\",\"\",\"Bin: [109.947, 121.51)<br>Observed:<br>111.246<br>Proportion:0.0032 (n=1)<br>Cumulative:0.987\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45404<br>45410<br>45504<br>45532<br>Proportion:0.013 (n=4)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  6.325  </font><font size="2">  11.086  </font><font size="3">  16.289  </font><font size="4"><strong>  23.416  </strong></font><font size="3">  33.225  </font><font size="2">  47.868  </font><font size="1">  56.610  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Glutamine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">375.7</td>
+<td headers="Gmd" class="gt_row gt_right">257.6</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-a26210f6f2328576e44c" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-a26210f6f2328576e44c">{"x":{"values":[1,0,0,1,2,0,0,0,1,0,2,0,0,0,0,0,0,0,0,3,1,0,1,0,0,1,2,0,1,2,5,3,1,4,6,5,6,3,4,4,5,9,6,4,2,8,3,13,8,11,10,11,11,14,12,7,8,5,6,9,8,9,8,9,5,3,3,10,6,6,6,2,1,3,2,0,0,2,2,0,0,0,0,1,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [23.3361, 24.5325)<br>Observed:<br>24.3794<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"Bin: [27.1126, 28.5027)<br>Observed:<br>27.148<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"Bin: [28.5027, 29.9641)<br>Observed:<br>28.964<br>29.0971<br>Proportion:0.0065 (n=2)<br>Cumulative:0.013\",\"\",\"\",\"\",\"Bin: [34.8133, 36.5982)<br>Observed:<br>36.4207<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0162\",\"\",\"Bin: [38.4747, 40.4473)<br>Observed:<br>39.3188<br>39.5677<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0227\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [60.3403, 63.434)<br>Observed:<br>62.8243<br>63.1462<br>63.4<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0325\",\"Bin: [63.434, 66.6863)<br>Observed:<br>63.8243<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0357\",\"\",\"Bin: [70.1054, 73.6998)<br>Observed:<br>72.4774<br>Proportion:0.0032 (n=1)<br>Cumulative:0.039\",\"\",\"\",\"Bin: [81.4509, 85.6269)<br>Observed:<br>84.4394<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0422\",\"Bin: [85.6269, 90.0171)<br>Observed:<br>88.4803<br>89.1854<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0487\",\"\",\"Bin: [94.6324, 99.4843)<br>Observed:<br>99.0767<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0519\",\"Bin: [99.4843, 104.585)<br>Observed:<br>100.333<br>102.053<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0584\",\"Bin: [104.585, 109.947)<br>Observed:<br>105.829<br>106.875<br>107.315<br>109.06<br>109.724<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0747\",\"Bin: [109.947, 115.584)<br>Observed:<br>112.57<br>113.408<br>114.316<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0844\",\"Bin: [115.584, 121.51)<br>Observed:<br>119.123<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0877\",\"Bin: [121.51, 127.74)<br>Observed:<br>123.231<br>123.89<br>126.349<br>126.457<br>Proportion:0.013 (n=4)<br>Cumulative:0.1006\",\"Bin: [127.74, 134.29)<br>Observed:<br>127.806<br>127.909<br>128.434<br>128.7<br>129.713<br>131.468<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1201\",\"Bin: [134.29, 141.175)<br>Observed:<br>135.951<br>136.372<br>138.356<br>139.722<br>140.602<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1364\",\"Bin: [141.175, 148.413)<br>Observed:<br>144.846<br>144.893<br>146.811<br>147.618<br>147.824<br>148.2<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1558\",\"Bin: [148.413, 156.022)<br>Observed:<br>149.835<br>150.977<br>152.57<br>Proportion:0.0097 (n=3)<br>Cumulative:0.1656\",\"Bin: [156.022, 164.022)<br>Observed:<br>156.905<br>157.974<br>159.587<br>160.688<br>Proportion:0.013 (n=4)<br>Cumulative:0.1786\",\"Bin: [164.022, 172.431)<br>Observed:<br>166.003<br>166.146<br>167<br>171.955<br>Proportion:0.013 (n=4)<br>Cumulative:0.1916\",\"Bin: [172.431, 181.272)<br>Observed:<br>176.596<br>176.845<br>178.266<br>179.292<br>181.1<br>Proportion:0.0162 (n=5)<br>Cumulative:0.2078\",\"Bin: [181.272, 190.566)<br>Observed:<br>181.771<br>184.957<br>185.809<br>185.831<br>186.705<br>186.896<br>187.18<br>187.443<br>188.546<br>Proportion:0.0292 (n=9)<br>Cumulative:0.237\",\"Bin: [190.566, 200.337)<br>Observed:<br>191.021<br>191.615<br>194.023<br>194.743<br>196.193<br>199.115<br>Proportion:0.0195 (n=6)<br>Cumulative:0.2565\",\"Bin: [200.337, 210.608)<br>Observed:<br>204.379<br>205.073<br>206.824<br>208.427<br>Proportion:0.013 (n=4)<br>Cumulative:0.2695\",\"Bin: [210.608, 221.406)<br>Observed:<br>214.183<br>216.4<br>Proportion:0.0065 (n=2)<br>Cumulative:0.276\",\"Bin: [221.406, 232.758)<br>Observed:<br>224.957<br>225.639<br>226.7<br>229.005<br>229.127<br>230.185<br>230.528<br>231.341<br>Proportion:0.026 (n=8)<br>Cumulative:0.3019\",\"Bin: [232.758, 244.692)<br>Observed:<br>233.645<br>238.422<br>243.067<br>Proportion:0.0097 (n=3)<br>Cumulative:0.3117\",\"Bin: [244.692, 257.238)<br>Observed:<br>244.757 - 256.3 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.3539\",\"Bin: [257.238, 270.426)<br>Observed:<br>257.49<br>258.015<br>260.3<br>260.924<br>261.508<br>262.972<br>263.084<br>269.64<br>Proportion:0.026 (n=8)<br>Cumulative:0.3799\",\"Bin: [270.426, 284.291)<br>Observed:<br>271.395 - 282.234 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.4156\",\"Bin: [284.291, 298.867)<br>Observed:<br>286.674<br>286.945<br>287.898<br>290.285<br>290.301<br>290.366<br>292.568<br>293.601<br>296.314<br>297.53<br>Proportion:0.0325 (n=10)<br>Cumulative:0.4481\",\"Bin: [298.867, 314.191)<br>Observed:<br>300.159 - 310.7 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.4838\",\"Bin: [314.191, 330.3)<br>Observed:<br>314.234 - 329.227 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.5195\",\"Bin: [330.3, 347.234)<br>Observed:<br>330.493 - 346.767 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.5649\",\"Bin: [347.234, 365.037)<br>Observed:<br>349.196 - 361.965 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.6039\",\"Bin: [365.037, 383.753)<br>Observed:<br>368.853<br>369.862<br>369.965<br>370.274<br>371.791<br>376.335<br>378.202<br>Proportion:0.0227 (n=7)<br>Cumulative:0.6266\",\"Bin: [383.753, 403.429)<br>Observed:<br>383.771<br>396.362<br>396.415<br>396.515<br>397.285<br>401.12<br>402.508<br>403.281<br>Proportion:0.026 (n=8)<br>Cumulative:0.6526\",\"Bin: [403.429, 424.113)<br>Observed:<br>409.314<br>409.381<br>411.51<br>420.844<br>423.731<br>Proportion:0.0162 (n=5)<br>Cumulative:0.6688\",\"Bin: [424.113, 445.858)<br>Observed:<br>430.474<br>434.067<br>435.341<br>436.79<br>442.1<br>444.4<br>Proportion:0.0195 (n=6)<br>Cumulative:0.6883\",\"Bin: [445.858, 468.717)<br>Observed:<br>447.438<br>448.664<br>449.53<br>450.736<br>451.088<br>453.885<br>454.416<br>460.344<br>465.479<br>Proportion:0.0292 (n=9)<br>Cumulative:0.7175\",\"Bin: [468.717, 492.749)<br>Observed:<br>474.362<br>476.061<br>476.733<br>477.645<br>487.424<br>488.115<br>488.939<br>489.968<br>Proportion:0.026 (n=8)<br>Cumulative:0.7435\",\"Bin: [492.749, 518.013)<br>Observed:<br>494.022<br>494.456<br>498.531<br>502.806<br>510.863<br>511.311<br>513.76<br>515.022<br>515.984<br>Proportion:0.0292 (n=9)<br>Cumulative:0.7727\",\"Bin: [518.013, 544.572)<br>Observed:<br>518.045<br>518.835<br>520.747<br>526.417<br>527.527<br>533.899<br>534.524<br>541.388<br>Proportion:0.026 (n=8)<br>Cumulative:0.7987\",\"Bin: [544.572, 572.493)<br>Observed:<br>545.503<br>548.799<br>549.296<br>549.42<br>549.807<br>555.939<br>556.469<br>568.114<br>572.172<br>Proportion:0.0292 (n=9)<br>Cumulative:0.8279\",\"Bin: [572.493, 601.845)<br>Observed:<br>576.426<br>577.38<br>592.573<br>599.755<br>601.383<br>Proportion:0.0162 (n=5)<br>Cumulative:0.8442\",\"Bin: [601.845, 632.702)<br>Observed:<br>608.846<br>619.956<br>623.729<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8539\",\"Bin: [632.702, 665.142)<br>Observed:<br>644.36<br>644.475<br>647.384<br>Proportion:0.0097 (n=3)<br>Cumulative:0.8636\",\"Bin: [665.142, 699.244)<br>Observed:<br>665.667<br>666.119<br>669.832<br>670.003<br>681.553<br>684.72<br>688.694<br>694.692<br>695.078<br>696.385<br>Proportion:0.0325 (n=10)<br>Cumulative:0.8961\",\"Bin: [699.244, 735.095)<br>Observed:<br>699.772<br>704.405<br>707.073<br>719.327<br>725.816<br>735.022<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9156\",\"Bin: [735.095, 772.784)<br>Observed:<br>735.178<br>750.486<br>752.179<br>752.507<br>753.572<br>758.993<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9351\",\"Bin: [772.784, 812.406)<br>Observed:<br>775.063<br>780.823<br>790.102<br>796.635<br>806.417<br>809.67<br>Proportion:0.0195 (n=6)<br>Cumulative:0.9545\",\"Bin: [812.406, 854.059)<br>Observed:<br>819.342<br>830.995<br>Proportion:0.0065 (n=2)<br>Cumulative:0.961\",\"Bin: [854.059, 897.847)<br>Observed:<br>859.631<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9643\",\"Bin: [897.847, 943.881)<br>Observed:<br>909.818<br>926.964<br>938.738<br>Proportion:0.0097 (n=3)<br>Cumulative:0.974\",\"Bin: [943.881, 992.275)<br>Observed:<br>965.88<br>977.699<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9805\",\"\",\"\",\"Bin: [1096.63, 1152.86)<br>Observed:<br>1101.81<br>1148.69<br>Proportion:0.0065 (n=2)<br>Cumulative:0.987\",\"Bin: [1152.86, 1211.97)<br>Observed:<br>1171.32<br>1184.57<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9935\",\"\",\"\",\"\",\"\",\"Bin: [1480.3, 1556.2)<br>Observed:<br>1513.18<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9968\",\"Bin: [1556.2, 1635.98]<br>Observed:<br>1587.69<br>Proportion:0.0032 (n=1)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  99.52  </font><font size="2">  127.40  </font><font size="3">  195.83  </font><font size="4"><strong>  324.60  </strong></font><font size="3">  495.47  </font><font size="2">  701.16  </font><font size="1">  802.99  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Glutamate</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">308</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">911</td>
+<td headers="Gmd" class="gt_row gt_right">1762</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-b1512ce57246d2164db0" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-b1512ce57246d2164db0">{"x":{"values":[1,1,1,1,0,1,0,0,1,0,1,1,1,2,2,0,3,2,5,3,4,6,6,3,13,9,21,14,16,8,18,15,13,19,13,6,14,12,12,6,12,9,5,3,4,3,2,2,2,0,2,1,2,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.818731, 0.904837)<br>Observed:<br>0.864613<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"Bin: [0.904837, 1)<br>Observed:<br>0.987409<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"Bin: [1, 1.10517)<br>Observed:<br>0<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0097\",\"Bin: [1.10517, 1.2214)<br>Observed:<br>1.21212<br>Proportion:0.0032 (n=1)<br>Cumulative:0.013\",\"\",\"Bin: [1.34986, 1.49182)<br>Observed:<br>1.36161<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0162\",\"\",\"\",\"Bin: [1.82212, 2.01375)<br>Observed:<br>1.90909<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0195\",\"\",\"Bin: [2.22554, 2.4596)<br>Observed:<br>2.44881<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0227\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.70648<br>Proportion:0.0032 (n=1)<br>Cumulative:0.026\",\"Bin: [2.71828, 3.00417)<br>Observed:<br>2.86369<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0292\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.12909<br>3.25416<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0357\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.38379<br>3.53608<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0422\",\"\",\"Bin: [4.0552, 4.48169)<br>Observed:<br>4.22511<br>4.31472<br>4.4<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0519\",\"Bin: [4.48169, 4.95303)<br>Observed:<br>4.54619<br>4.54965<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0584\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>5.0401<br>5.08426<br>5.09327<br>5.32693<br>5.41909<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0747\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.68516<br>5.99447<br>6.04205<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0844\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.3646<br>6.4094<br>6.63803<br>6.68482<br>Proportion:0.013 (n=4)<br>Cumulative:0.0974\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.94075<br>6.94861<br>6.96511<br>7.03344<br>7.11264<br>7.24632<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1169\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.5732<br>7.57631<br>7.87596<br>7.98818<br>8.06016<br>8.12651<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1364\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.37211<br>8.52641<br>8.84025<br>Proportion:0.0097 (n=3)<br>Cumulative:0.1461\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.06723 - 9.81101 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.1883\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10.1138<br>10.1701<br>10.1724<br>10.1754<br>10.3192<br>10.3529<br>10.5844<br>10.9335<br>11.0092<br>Proportion:0.0292 (n=9)<br>Cumulative:0.2175\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.1502 - 12.1361 (21 distinct)<br>Proportion:0.0682 (n=21)<br>Cumulative:0.2857\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.1863 - 13.3243 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.3312\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.519 - 14.7861 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.3831\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>14.9<br>15.0451<br>15.1309<br>15.2594<br>15.2675<br>15.9155<br>15.9396<br>15.9401<br>Proportion:0.026 (n=8)<br>Cumulative:0.4091\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.7392 - 18.0401 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.4675\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.3179 - 20.0527 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.5162\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.3203 - 22.1381 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.5584\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.2242 - 24.4816 (19 distinct)<br>Proportion:0.0617 (n=19)<br>Cumulative:0.6201\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.9091 - 26.9394 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.6623\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.2661<br>27.3115<br>27.3202<br>27.58<br>27.6368<br>28.8108<br>Proportion:0.0195 (n=6)<br>Cumulative:0.6818\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>30.1614 - 33.0904 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.7273\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.6339 - 36.48 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.7662\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>36.8149 - 39.5881 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.8052\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>40.5753<br>41.3181<br>41.8173<br>43.1694<br>43.7457<br>44.4821<br>Proportion:0.0195 (n=6)<br>Cumulative:0.8247\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>45.1807 - 49.1038 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.8636\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>49.7227<br>50.2979<br>50.9389<br>51.0268<br>51.7<br>51.7752<br>52.7<br>53.0528<br>54.2104<br>Proportion:0.0292 (n=9)<br>Cumulative:0.8929\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>58.038<br>58.3254<br>59.3961<br>59.4619<br>59.5166<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9091\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>60.6664<br>61.6998<br>63.6405<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9188\",\"Bin: [66.6863, 73.6998)<br>Observed:<br>67.0232<br>68.7036<br>69.3383<br>69.4251<br>Proportion:0.013 (n=4)<br>Cumulative:0.9318\",\"Bin: [73.6998, 81.4509)<br>Observed:<br>74.1236<br>75.1916<br>77.6448<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9416\",\"Bin: [81.4509, 90.0171)<br>Observed:<br>85.1603<br>89.0442<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9481\",\"Bin: [90.0171, 99.4843)<br>Observed:<br>97.6869<br>98.8261<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9545\",\"Bin: [99.4843, 109.947)<br>Observed:<br>106.358<br>108.391<br>Proportion:0.0065 (n=2)<br>Cumulative:0.961\",\"\",\"Bin: [121.51, 134.29)<br>Observed:<br>122.226<br>127.692<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9675\",\"Bin: [134.29, 148.413)<br>Observed:<br>142.953<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"Bin: [148.413, 164.022)<br>Observed:<br>157.898<br>158.088<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9773\",\"\",\"\",\"Bin: [200.337, 221.406)<br>Observed:<br>210.96<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45305<br>45361<br>45436<br>45451<br>45452<br>45455<br>Proportion:0.0195 (n=6)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  4.451  </font><font size="2">  6.946  </font><font size="3">  11.523  </font><font size="4"><strong>  19.343  </strong></font><font size="3">  35.049  </font><font size="2">  58.647  </font><font size="1">  94.662  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Methionine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">303</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">1036</td>
+<td headers="Gmd" class="gt_row gt_right">2025</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-7cb0bee9070b85458246" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-7cb0bee9070b85458246">{"x":{"values":[1,2,1,1,2,0,0,2,8,2,1,1,1,4,6,2,8,7,12,18,16,23,26,26,28,27,18,15,12,11,9,4,1,2,0,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.449329, 0.496585)<br>Observed:<br>0.451533<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"Bin: [0.496585, 0.548812)<br>Observed:<br>0.5351<br>0.5469<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0097\",\"Bin: [0.548812, 0.606531)<br>Observed:<br>0.569253<br>Proportion:0.0032 (n=1)<br>Cumulative:0.013\",\"Bin: [0.606531, 0.67032)<br>Observed:<br>0.662175<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0162\",\"Bin: [0.67032, 0.740818)<br>Observed:<br>0.724254<br>0.73908<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0227\",\"\",\"\",\"Bin: [0.904837, 1)<br>Observed:<br>0.951269<br>0.960874<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0292\",\"Bin: [1, 1.10517)<br>Observed:<br>0 (4)<br>1.02848<br>1.05193<br>1.0622<br>1.08991<br>Proportion:0.026 (n=8)<br>Cumulative:0.0552\",\"Bin: [1.10517, 1.2214)<br>Observed:<br>1.17517<br>1.21444<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0617\",\"Bin: [1.2214, 1.34986)<br>Observed:<br>1.27643<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0649\",\"Bin: [1.34986, 1.49182)<br>Observed:<br>1.37718<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0682\",\"Bin: [1.49182, 1.64872)<br>Observed:<br>1.56722<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0714\",\"Bin: [1.64872, 1.82212)<br>Observed:<br>1.73941<br>1.75395<br>1.76075<br>1.78527<br>Proportion:0.013 (n=4)<br>Cumulative:0.0844\",\"Bin: [1.82212, 2.01375)<br>Observed:<br>1.8274<br>1.86671<br>1.88698<br>1.90541<br>1.9809<br>2.00869<br>Proportion:0.0195 (n=6)<br>Cumulative:0.1039\",\"Bin: [2.01375, 2.22554)<br>Observed:<br>2.02133<br>2.06866<br>Proportion:0.0065 (n=2)<br>Cumulative:0.1104\",\"Bin: [2.22554, 2.4596)<br>Observed:<br>2.32823<br>2.32988<br>2.34724<br>2.39465<br>2.41181<br>2.42748<br>2.44419<br>2.45609<br>Proportion:0.026 (n=8)<br>Cumulative:0.1364\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.46516<br>2.53658<br>2.54902<br>2.64132<br>2.65609<br>2.69288<br>2.70798<br>Proportion:0.0227 (n=7)<br>Cumulative:0.1591\",\"Bin: [2.71828, 3.00417)<br>Observed:<br>2.74696 - 3.00235 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.1981\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.00501 - 3.30954 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.2565\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.32355 - 3.6411 (16 distinct)<br>Proportion:0.0519 (n=16)<br>Cumulative:0.3084\",\"Bin: [3.6693, 4.0552)<br>Observed:<br>3.67581 - 4.05199 (23 distinct)<br>Proportion:0.0747 (n=23)<br>Cumulative:0.3831\",\"Bin: [4.0552, 4.48169)<br>Observed:<br>4.07226 - 4.46465 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.4675\",\"Bin: [4.48169, 4.95303)<br>Observed:<br>4.49357 - 4.91357 (26 distinct)<br>Proportion:0.0844 (n=26)<br>Cumulative:0.5519\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>4.97043 - 5.47154 (27 distinct)<br>Proportion:0.0909 (n=28)<br>Cumulative:0.6429\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.48253 - 6.02798 (27 distinct)<br>Proportion:0.0877 (n=27)<br>Cumulative:0.7305\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.07209 - 6.64204 (18 distinct)<br>Proportion:0.0584 (n=18)<br>Cumulative:0.789\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.73603 - 7.20207 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.8377\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.56076 - 8.10036 (12 distinct)<br>Proportion:0.039 (n=12)<br>Cumulative:0.8766\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.17035<br>8.22451<br>8.26521<br>8.41434<br>8.43608<br>8.52233<br>8.55703<br>8.6 (2)<br>8.6278<br>8.99049<br>Proportion:0.0357 (n=11)<br>Cumulative:0.9123\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.02613<br>9.11709<br>9.17659<br>9.29756<br>9.3<br>9.37087<br>9.56643<br>9.77741<br>9.86043<br>Proportion:0.0292 (n=9)<br>Cumulative:0.9416\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10.1314<br>10.1654<br>10.2139<br>10.4928<br>Proportion:0.013 (n=4)<br>Cumulative:0.9545\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.7172<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9578\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.4207<br>12.5861<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9643\",\"\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>15.4598<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9675\",\"\",\"\",\"\",\"Bin: [22.198, 24.5325)<br>Observed:<br>23.1265<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9708\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>27.0702<br>Proportion:0.0032 (n=1)<br>Cumulative:0.974\",\"\",\"\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.9244<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9773\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45301<br>45327<br>45356<br>45357<br>45385<br>45422<br>45446<br>Proportion:0.0227 (n=7)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  1.072  </font><font size="2">  2.000  </font><font size="3">  3.293  </font><font size="4"><strong>  4.602  </strong></font><font size="3">  6.123  </font><font size="2">  8.570  </font><font size="1">  10.197  </font></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">Arginine</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Concentration per Creatinine gramm</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">μmol/g</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">306</td>
+<td headers="Info" class="gt_row gt_right">1.000</td>
+<td headers="Mean" class="gt_row gt_right">769.4</td>
+<td headers="Gmd" class="gt_row gt_right">1487</td>
+<td headers=" " class="gt_row gt_right"><span id="htmlwidget-9db924517c2cb64c3a2d" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-9db924517c2cb64c3a2d">{"x":{"values":[1,0,0,0,0,0,0,0,1,2,2,6,3,4,3,1,5,4,4,4,4,8,2,5,11,10,13,17,21,13,8,14,9,15,14,13,8,10,7,8,11,8,8,5,3,2,4,1,1,2,1,2,3,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":1,"barSpacing":1,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Transformation for<br>histogram:log<br><br>Bin: [0.904837, 1)<br>Observed:<br>0.988723<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0032\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [2.01375, 2.22554)<br>Observed:<br>2.06596<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0065\",\"Bin: [2.22554, 2.4596)<br>Observed:<br>2.24612<br>2.25877<br>Proportion:0.0065 (n=2)<br>Cumulative:0.013\",\"Bin: [2.4596, 2.71828)<br>Observed:<br>2.6368<br>2.69006<br>Proportion:0.0065 (n=2)<br>Cumulative:0.0195\",\"Bin: [2.71828, 3.00417)<br>Observed:<br>2.73261<br>2.74483<br>2.81404<br>2.86161<br>2.9<br>2.91378<br>Proportion:0.0195 (n=6)<br>Cumulative:0.039\",\"Bin: [3.00417, 3.32012)<br>Observed:<br>3.17393<br>3.20205<br>3.28695<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0487\",\"Bin: [3.32012, 3.6693)<br>Observed:<br>3.54899<br>3.57401<br>3.65416<br>3.66914<br>Proportion:0.013 (n=4)<br>Cumulative:0.0617\",\"Bin: [3.6693, 4.0552)<br>Observed:<br>3.6799<br>3.75099<br>3.83588<br>Proportion:0.0097 (n=3)<br>Cumulative:0.0714\",\"Bin: [4.0552, 4.48169)<br>Observed:<br>4.46192<br>Proportion:0.0032 (n=1)<br>Cumulative:0.0747\",\"Bin: [4.48169, 4.95303)<br>Observed:<br>4.57726<br>4.6477<br>4.71011<br>4.73965<br>4.84243<br>Proportion:0.0162 (n=5)<br>Cumulative:0.0909\",\"Bin: [4.95303, 5.47395)<br>Observed:<br>4.95319<br>5.15129<br>5.18785<br>5.28582<br>Proportion:0.013 (n=4)<br>Cumulative:0.1039\",\"Bin: [5.47395, 6.04965)<br>Observed:<br>5.53804<br>5.54511<br>5.90235<br>6.01023<br>Proportion:0.013 (n=4)<br>Cumulative:0.1169\",\"Bin: [6.04965, 6.68589)<br>Observed:<br>6.20199<br>6.30531<br>6.33759<br>6.65095<br>Proportion:0.013 (n=4)<br>Cumulative:0.1299\",\"Bin: [6.68589, 7.38906)<br>Observed:<br>6.8153<br>6.82718<br>7.04044<br>7.04596<br>Proportion:0.013 (n=4)<br>Cumulative:0.1429\",\"Bin: [7.38906, 8.16617)<br>Observed:<br>7.3974<br>7.68016<br>7.7791<br>7.91117<br>7.97715<br>7.98227<br>8.03886<br>8.06213<br>Proportion:0.026 (n=8)<br>Cumulative:0.1688\",\"Bin: [8.16617, 9.02501)<br>Observed:<br>8.20853<br>8.9866<br>Proportion:0.0065 (n=2)<br>Cumulative:0.1753\",\"Bin: [9.02501, 9.97418)<br>Observed:<br>9.2 (2)<br>9.31796<br>9.7899<br>9.80675<br>Proportion:0.0162 (n=5)<br>Cumulative:0.1916\",\"Bin: [9.97418, 11.0232)<br>Observed:<br>10<br>10.0446<br>10.1218<br>10.1861<br>10.2116<br>10.3397<br>10.6224<br>10.6393<br>10.7547<br>11 (2)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.2273\",\"Bin: [11.0232, 12.1825)<br>Observed:<br>11.1698<br>11.2754<br>11.3165<br>11.3272<br>11.3894<br>11.4284<br>11.5643<br>11.6799<br>12.0959<br>12.1624<br>Proportion:0.0325 (n=10)<br>Cumulative:0.2597\",\"Bin: [12.1825, 13.4637)<br>Observed:<br>12.4036 - 13.2111 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.3019\",\"Bin: [13.4637, 14.8797)<br>Observed:<br>13.5913 - 14.7847 (17 distinct)<br>Proportion:0.0552 (n=17)<br>Cumulative:0.3571\",\"Bin: [14.8797, 16.4446)<br>Observed:<br>14.9114 - 16.4259 (21 distinct)<br>Proportion:0.0682 (n=21)<br>Cumulative:0.4253\",\"Bin: [16.4446, 18.1741)<br>Observed:<br>16.45 - 18.169 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.4675\",\"Bin: [18.1741, 20.0855)<br>Observed:<br>18.2026<br>18.2198<br>18.2673<br>19.1172<br>19.5716<br>19.9562<br>20.073<br>20.0808<br>Proportion:0.026 (n=8)<br>Cumulative:0.4935\",\"Bin: [20.0855, 22.198)<br>Observed:<br>20.304 - 21.8926 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.539\",\"Bin: [22.198, 24.5325)<br>Observed:<br>22.3705<br>22.5261<br>22.6115<br>22.7639<br>22.8491<br>23.057<br>23.5779<br>23.9468<br>24.2049<br>Proportion:0.0292 (n=9)<br>Cumulative:0.5682\",\"Bin: [24.5325, 27.1126)<br>Observed:<br>24.6107 - 27.0103 (15 distinct)<br>Proportion:0.0487 (n=15)<br>Cumulative:0.6169\",\"Bin: [27.1126, 29.9641)<br>Observed:<br>27.148 - 29.8455 (14 distinct)<br>Proportion:0.0455 (n=14)<br>Cumulative:0.6623\",\"Bin: [29.9641, 33.1155)<br>Observed:<br>30.2008 - 32.7587 (13 distinct)<br>Proportion:0.0422 (n=13)<br>Cumulative:0.7045\",\"Bin: [33.1155, 36.5982)<br>Observed:<br>33.2377<br>33.5872<br>34.9162<br>35.0523<br>35.7189<br>35.9088<br>36.3999<br>36.4203<br>Proportion:0.026 (n=8)<br>Cumulative:0.7305\",\"Bin: [36.5982, 40.4473)<br>Observed:<br>37.1868<br>37.2441<br>37.3288<br>37.7495<br>38.5851<br>38.8922<br>40.0523<br>40.1657<br>40.3509<br>40.4001<br>Proportion:0.0325 (n=10)<br>Cumulative:0.763\",\"Bin: [40.4473, 44.7012)<br>Observed:<br>41.4218<br>41.7979<br>41.8623<br>42.7733<br>43.9851<br>44.2142<br>44.6238<br>Proportion:0.0227 (n=7)<br>Cumulative:0.7857\",\"Bin: [44.7012, 49.4024)<br>Observed:<br>44.7619<br>44.9839<br>45.3341<br>45.7318<br>46.7746<br>47.9149<br>48.6393<br>49.3359<br>Proportion:0.026 (n=8)<br>Cumulative:0.8117\",\"Bin: [49.4024, 54.5982)<br>Observed:<br>49.5818 - 54.4482 (11 distinct)<br>Proportion:0.0357 (n=11)<br>Cumulative:0.8474\",\"Bin: [54.5982, 60.3403)<br>Observed:<br>55.0132<br>56.1163<br>56.5226<br>56.6751<br>57.8933<br>58.5083<br>59.4242<br>59.8357<br>Proportion:0.026 (n=8)<br>Cumulative:0.8734\",\"Bin: [60.3403, 66.6863)<br>Observed:<br>60.4962<br>61.1786<br>61.3138<br>62.5683<br>62.942<br>63.6827<br>66.3133<br>66.3156<br>Proportion:0.026 (n=8)<br>Cumulative:0.8994\",\"Bin: [66.6863, 73.6998)<br>Observed:<br>67.7715<br>68.0179<br>71.0066<br>72.7203<br>73.2413<br>Proportion:0.0162 (n=5)<br>Cumulative:0.9156\",\"Bin: [73.6998, 81.4509)<br>Observed:<br>74.9639<br>75.3939<br>78.8875<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9253\",\"Bin: [81.4509, 90.0171)<br>Observed:<br>82.0718<br>87.7268<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9318\",\"Bin: [90.0171, 99.4843)<br>Observed:<br>95.907<br>97.3666<br>97.7462<br>98.0425<br>Proportion:0.013 (n=4)<br>Cumulative:0.9448\",\"Bin: [99.4843, 109.947)<br>Observed:<br>102.769<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9481\",\"Bin: [109.947, 121.51)<br>Observed:<br>110.882<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9513\",\"Bin: [121.51, 134.29)<br>Observed:<br>128.084<br>130.038<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9578\",\"Bin: [134.29, 148.413)<br>Observed:<br>138.418<br>Proportion:0.0032 (n=1)<br>Cumulative:0.961\",\"Bin: [148.413, 164.022)<br>Observed:<br>155.437<br>159.105<br>Proportion:0.0065 (n=2)<br>Cumulative:0.9675\",\"Bin: [164.022, 181.272)<br>Observed:<br>169.088<br>169.489<br>180.839<br>Proportion:0.0097 (n=3)<br>Cumulative:0.9773\",\"\",\"\",\"Bin: [221.406, 244.692)<br>Observed:<br>228.334<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9805\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [601.845, 665.142)<br>Observed:<br>603.914<br>Proportion:0.0032 (n=1)<br>Cumulative:0.9838\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Bin: [44355.9, 49020.8]<br>Observed:<br>45399<br>45424<br>45455<br>45494<br>45554<br>Proportion:0.0162 (n=5)<br>Cumulative:1\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td>
+<td headers="Quantiles" class="gt_row gt_center"><font size="1">  3.558  </font><font size="2">  5.256  </font><font size="3">  11.651  </font><font size="4"><strong>  20.551  </strong></font><font size="3">  39.182  </font><font size="2">  66.752  </font><font size="1">  108.042  </font></td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+```
+## Categorical
+
+```{=html}
+<div id="nhozibdqdo" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#nhozibdqdo table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#nhozibdqdo thead, #nhozibdqdo tbody, #nhozibdqdo tfoot, #nhozibdqdo tr, #nhozibdqdo td, #nhozibdqdo th {
+  border-style: none;
+}
+
+#nhozibdqdo p {
+  margin: 0;
+  padding: 0;
+}
+
+#nhozibdqdo .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#nhozibdqdo .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#nhozibdqdo .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#nhozibdqdo .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#nhozibdqdo .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#nhozibdqdo .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#nhozibdqdo .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#nhozibdqdo .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#nhozibdqdo .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#nhozibdqdo .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#nhozibdqdo .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#nhozibdqdo .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#nhozibdqdo .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#nhozibdqdo .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#nhozibdqdo .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nhozibdqdo .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#nhozibdqdo .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#nhozibdqdo .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#nhozibdqdo .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nhozibdqdo .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#nhozibdqdo .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nhozibdqdo .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#nhozibdqdo .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nhozibdqdo .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nhozibdqdo .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nhozibdqdo .gt_left {
+  text-align: left;
+}
+
+#nhozibdqdo .gt_center {
+  text-align: center;
+}
+
+#nhozibdqdo .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#nhozibdqdo .gt_font_normal {
+  font-weight: normal;
+}
+
+#nhozibdqdo .gt_font_bold {
+  font-weight: bold;
+}
+
+#nhozibdqdo .gt_font_italic {
+  font-style: italic;
+}
+
+#nhozibdqdo .gt_super {
+  font-size: 65%;
+}
+
+#nhozibdqdo .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#nhozibdqdo .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#nhozibdqdo .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#nhozibdqdo .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#nhozibdqdo .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#nhozibdqdo .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#nhozibdqdo .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_heading">
+      <td colspan="7" class="gt_heading gt_title gt_font_normal" style><strong><code>Ref_ranges_AAU_2</code> Descriptives</strong></td>
+    </tr>
+    <tr class="gt_heading">
+      <td colspan="7" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>10 Categorical Variables of 27 Variables, 308 Observations</td>
+    </tr>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Variable">Variable</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Label">Label</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="Units">Units</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="n">n</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Missing">Missing</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" style="text-align: center;" scope="col" id="Distinct">Distinct</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id=" "> </th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="Variable" class="gt_row gt_left">id</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Subject id</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">296</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><div data-qmd="1018         -  
+NAKOS         
+Min/Max/Mean Width: 3 / 12 / 5"><div class='gt_from_md'><p>1018         -<br />
+NAKOS<br />
+Min/Max/Mean Width: 3 / 12 / 5</p>
+</div></div></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">sex</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Subject gender</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">Female/Male</td>
+<td headers="n" class="gt_row gt_right">258</td>
+<td headers="Missing" class="gt_row gt_right">50</td>
+<td headers="Distinct" class="gt_row gt_right">2</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-46008d92161062b2e8d7" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-46008d92161062b2e8d7">{"x":{"values":[163,95],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"Female<br>Proportion:0.6318 (n=163)\",\"Male<br>Proportion:0.3682 (n=95)\"][field[0].offset];\n       }","height":20,"width":15},"width":15,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">chronic_disease_flag</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Does the subject have a chronic disease?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">Yes/No</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">2</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-bbd965b6e8c57b6a6c1d" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-bbd965b6e8c57b6a6c1d">{"x":{"values":[241,67],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"No<br>Proportion:0.7825 (n=241)\",\"Yes<br>Proportion:0.2175 (n=67)\"][field[0].offset];\n       }","height":20,"width":15},"width":15,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">chronic_disease</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">If subject has a chronic disease, which one is it?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">50</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-8f484e33a3664eca5c92" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-8f484e33a3664eca5c92">{"x":{"values":[241,8,6,3,3,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"None<br>Proportion:0.7825 (n=241)\",\"Hashimoto<br>Proportion:0.026 (n=8)\",\"Hypothyroidism<br>Proportion:0.0195 (n=6)\",\"Multiple Sclerosis<br>Proportion:0.0097 (n=3)\",\"Osteoporosis<br>Proportion:0.0097 (n=3)\",\"Hypertension<br>Proportion:0.0065 (n=2)\",\"IBS<br>Proportion:0.0065 (n=2)\",\"After Surgery<br>Proportion:0.0032 (n=1)\",\"Allergic Asthma, Migraines<br>Proportion:0.0032 (n=1)\",\"Allergic Rhinitis<br>Proportion:0.0032 (n=1)\",\"Anemia, Hashimoto<br>Proportion:0.0032 (n=1)\",\"Arrythmia<br>Proportion:0.0032 (n=1)\",\"Blood pressure<br>Proportion:0.0032 (n=1)\",\"Blood Sugar<br>Proportion:0.0032 (n=1)\",\"Breast Cancer<br>Proportion:0.0032 (n=1)\",\"Cancer<br>Proportion:0.0032 (n=1)\",\"Cardiovascular<br>Proportion:0.0032 (n=1)\",\"Celiac Disease<br>Proportion:0.0032 (n=1)\",\"Cholysterol, Esophagitis<br>Proportion:0.0032 (n=1)\",\"Coronary Artery Disease<br>Proportion:0.0032 (n=1)\",\"Coronary Artery Disease, Arthritis<br>Proportion:0.0032 (n=1)\",\"Diabetes<br>Proportion:0.0032 (n=1)\",\"Diplopia<br>Proportion:0.0032 (n=1)\",\"Diverticulitis, Allergic Asthma, Blood Pressure<br>Proportion:0.0032 (n=1)\",\"Esophagitis, Cholestreol<br>Proportion:0.0032 (n=1)\",\"Gastric Ulcer<br>Proportion:0.0032 (n=1)\",\"Gastritis<br>Proportion:0.0032 (n=1)\",\"Gastritis, Migraines, Acid Reflux<br>Proportion:0.0032 (n=1)\",\"Glomerulonephritis<br>Proportion:0.0032 (n=1)\",\"Gouty Arthritis<br>Proportion:0.0032 (n=1)\",\"Hashimoto Thyroiditis, T4 125<br>Proportion:0.0032 (n=1)\",\"Hashimoto, Hypertension<br>Proportion:0.0032 (n=1)\",\"Hashimoto, Rheumatoid Arthritis<br>Proportion:0.0032 (n=1)\",\"Heart Disease<br>Proportion:0.0032 (n=1)\",\"History of Thyroid<br>Proportion:0.0032 (n=1)\",\"Hypothyroidism, Bipolar Type 2<br>Proportion:0.0032 (n=1)\",\"In situ Breast Cancer<br>Proportion:0.0032 (n=1)\",\"Keratoconus, Hypothyroidism, Breast Cancer<br>Proportion:0.0032 (n=1)\",\"MCTD<br>Proportion:0.0032 (n=1)\",\"Mitral Valve Regurgitation<br>Proportion:0.0032 (n=1)\",\"Ovarian Cancer, Hypothyroidism<br>Proportion:0.0032 (n=1)\",\"Psoriasis<br>Proportion:0.0032 (n=1)\",\"Psoriasis, Hypothyroidism<br>Proportion:0.0032 (n=1)\",\"Shoulder Periarthritis<br>Proportion:0.0032 (n=1)\",\"Spasmodic Bronchitis<br>Proportion:0.0032 (n=1)\",\"Stomach pains<br>Proportion:0.0032 (n=1)\",\"Stomach, Gut<br>Proportion:0.0032 (n=1)\",\"Thyroidism<br>Proportion:0.0032 (n=1)\",\"Thyroiditis<br>Proportion:0.0032 (n=1)\",\"Αtrial fibrillation<br>Proportion:0.0032 (n=1)\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">chronic_disease_v2</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Recoding of the chronic_disease information into more general types of diseases</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">20</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-6bf0f251a1fba9bd1d80" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-6bf0f251a1fba9bd1d80">{"x":{"values":[188,35,17,13,12,8,7,5,4,4,3,3,2,1,1,1,1,1,1,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"None<br>Proportion:0.6104 (n=188)\",\"Thyroidism<br>Proportion:0.1136 (n=35)\",\"Blood<br>Proportion:0.0552 (n=17)\",\"Heart<br>Proportion:0.0422 (n=13)\",\"Stomach<br>Proportion:0.039 (n=12)\",\"Depression<br>Proportion:0.026 (n=8)\",\"Pain<br>Proportion:0.0227 (n=7)\",\"Autoimmune<br>Proportion:0.0162 (n=5)\",\"Allergies<br>Proportion:0.013 (n=4)\",\"Infection<br>Proportion:0.013 (n=4)\",\"Bone<br>Proportion:0.0097 (n=3)\",\"Cancer<br>Proportion:0.0097 (n=3)\",\"Arthritis<br>Proportion:0.0065 (n=2)\",\"Acne<br>Proportion:0.0032 (n=1)\",\"After Surgery<br>Proportion:0.0032 (n=1)\",\"Asthma<br>Proportion:0.0032 (n=1)\",\"Bronchitis<br>Proportion:0.0032 (n=1)\",\"Gastritis<br>Proportion:0.0032 (n=1)\",\"Kidney<br>Proportion:0.0032 (n=1)\",\"Vision<br>Proportion:0.0032 (n=1)\"][field[0].offset];\n       }","height":20,"width":105},"width":105,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">chronic_disease_v3</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">A lumped by frequency version of chronic_disease_v2 so that there are 7 categories of disease types in the data</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">8</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-b51a135f0880396cd968" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-b51a135f0880396cd968">{"x":{"values":[188,35,28,17,13,12,8,7],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"None<br>Proportion:0.6104 (n=188)\",\"Thyroidism<br>Proportion:0.1136 (n=35)\",\"Other<br>Proportion:0.0909 (n=28)\",\"Blood<br>Proportion:0.0552 (n=17)\",\"Heart<br>Proportion:0.0422 (n=13)\",\"Stomach<br>Proportion:0.039 (n=12)\",\"Depression<br>Proportion:0.026 (n=8)\",\"Pain<br>Proportion:0.0227 (n=7)\"][field[0].offset];\n       }","height":20,"width":45},"width":45,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">meds_flag</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Does the subject take any medication?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">Yes/No</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">2</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-d902786f894a0cfae6c8" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-d902786f894a0cfae6c8">{"x":{"values":[201,107],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"No<br>Proportion:0.6526 (n=201)\",\"Yes<br>Proportion:0.3474 (n=107)\"][field[0].offset];\n       }","height":20,"width":15},"width":15,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">meds</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">If subject is taking medication, which one is it?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">106</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><div data-qmd="Acnotren 20mg                      -  
+Zinadol, T4, Nolvadex               
+Min/Max/Mean Width: 2 / 44 / 9  
+Mode:None (n=201)"><div class='gt_from_md'><p>Acnotren 20mg                      -<br />
+Zinadol, T4, Nolvadex<br />
+Min/Max/Mean Width: 2 / 44 / 9<br />
+Mode:None (n=201)</p>
+</div></div></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">supplements_flag</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">Does the subject take any supplements?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;">Yes/No</td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">2</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-a2205bd18632ac9428b4" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-a2205bd18632ac9428b4">{"x":{"values":[223,85],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"No<br>Proportion:0.724 (n=223)\",\"Yes<br>Proportion:0.276 (n=85)\"][field[0].offset];\n       }","height":20,"width":15},"width":15,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+    <tr><td headers="Variable" class="gt_row gt_left">supplements</td>
+<td headers="Label" class="gt_row gt_left" style="font-size: small;">If subject is taking supplements, which one is it?</td>
+<td headers="Units" class="gt_row gt_left" style="font-family: arial; font-size: small;"></td>
+<td headers="n" class="gt_row gt_right">308</td>
+<td headers="Missing" class="gt_row gt_right">0</td>
+<td headers="Distinct" class="gt_row gt_right">78</td>
+<td headers="tab" class="gt_row gt_left" style="font-size: x-small;"><span id="htmlwidget-d738d61b38e10fe96590" class="sparkline html-widget"></span>
+<script type="application/json" data-for="htmlwidget-d738d61b38e10fe96590">{"x":{"values":[223,3,3,3,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"options":{"type":"bar","chartRangeMin":0,"zeroColor":"lightgray","barWidth":3,"barSpacing":2,"tooltipFormatter":"function(sparkline, options, field){\n       debugger;\n       return [\"None<br>Proportion:0.724 (n=223)\",\"Magnesium<br>Proportion:0.0097 (n=3)\",\"Multivitamins<br>Proportion:0.0097 (n=3)\",\"VitC<br>Proportion:0.0097 (n=3)\",\"Probiotics<br>Proportion:0.0065 (n=2)\",\"Protein<br>Proportion:0.0065 (n=2)\",\"B,C,D, ZINC, Milk Thistle, Taurine<br>Proportion:0.0032 (n=1)\",\"Balance oil, Prodiotec, Medenzym, MSM Powder<br>Proportion:0.0032 (n=1)\",\"Bcomplex, Antistress, C+Zinc<br>Proportion:0.0032 (n=1)\",\"BioColostrum 500mg<br>Proportion:0.0032 (n=1)\",\"C,Zn,D3,Agnus Castus,E,Se,Inositol,Melatonin<br>Proportion:0.0032 (n=1)\",\"Calcioral<br>Proportion:0.0032 (n=1)\",\"Cannabis Oil, Mitocomplex<br>Proportion:0.0032 (n=1)\",\"Cascara Sagrada, Female Multiple<br>Proportion:0.0032 (n=1)\",\"Cetrum woman<br>Proportion:0.0032 (n=1)\",\"Coemzyme Q10<br>Proportion:0.0032 (n=1)\",\"Collagen, Omega 3, Fiber Supplements<br>Proportion:0.0032 (n=1)\",\"Creatinine, Protein<br>Proportion:0.0032 (n=1)\",\"D3, BComplex, Magnesium, Cystiphane<br>Proportion:0.0032 (n=1)\",\"D3, Filicin<br>Proportion:0.0032 (n=1)\",\"D3, K2, Arichol<br>Proportion:0.0032 (n=1)\",\"D3Fix, Palmogen, Mexrin, Filicin<br>Proportion:0.0032 (n=1)\",\"Ducrat Vitamins<br>Proportion:0.0032 (n=1)\",\"Eva Intimate<br>Proportion:0.0032 (n=1)\",\"Fe<br>Proportion:0.0032 (n=1)\",\"Fe, Multivit<br>Proportion:0.0032 (n=1)\",\"Fe, VitC<br>Proportion:0.0032 (n=1)\",\"Fe, VitD, Mg<br>Proportion:0.0032 (n=1)\",\"Filicin, Palmopen, D3 Fix<br>Proportion:0.0032 (n=1)\",\"Filicin, Tandyferol<br>Proportion:0.0032 (n=1)\",\"Folic Acid<br>Proportion:0.0032 (n=1)\",\"For Stomach and Gut<br>Proportion:0.0032 (n=1)\",\"Hyalouron, Jointace, Vit C<br>Proportion:0.0032 (n=1)\",\"Hypus Argan, Aquilea Sueno, Herboxa Colon Cleanse, Herboxa Feminine Balance, Multivit, Nafliver, Herboxa Stress Control<br>Proportion:0.0032 (n=1)\",\"LArginine, Ginseng, Mg, VitC<br>Proportion:0.0032 (n=1)\",\"LGlutamine<br>Proportion:0.0032 (n=1)\",\"Magnesium Citrate<br>Proportion:0.0032 (n=1)\",\"Magnesium, Acidophilus<br>Proportion:0.0032 (n=1)\",\"Magnesium, B12, Zinc<br>Proportion:0.0032 (n=1)\",\"Magnesium, Folic acid<br>Proportion:0.0032 (n=1)\",\"Magnesium, Turmeric, Vitamin D, B12, Folic acid<br>Proportion:0.0032 (n=1)\",\"Magnesium, Vits for hair<br>Proportion:0.0032 (n=1)\",\"Magnesium, Zn<br>Proportion:0.0032 (n=1)\",\"Magnesium,VitB,VitC<br>Proportion:0.0032 (n=1)\",\"Megabiotix, Magnesium, For hair and nails<br>Proportion:0.0032 (n=1)\",\"Melatonina<br>Proportion:0.0032 (n=1)\",\"Mg<br>Proportion:0.0032 (n=1)\",\"Mollers Total<br>Proportion:0.0032 (n=1)\",\"Mollers, D3<br>Proportion:0.0032 (n=1)\",\"Multivitamin<br>Proportion:0.0032 (n=1)\",\"Multivitamin, Magnesium, Probiotics, Alixin, Biotin<br>Proportion:0.0032 (n=1)\",\"Multivitamin, VitC, VitD, Whey Protein<br>Proportion:0.0032 (n=1)\",\"Multivitamin, VitD<br>Proportion:0.0032 (n=1)\",\"Mutlivit, Turmeric, D 3000mg<br>Proportion:0.0032 (n=1)\",\"Nevralip<br>Proportion:0.0032 (n=1)\",\"Omega, Vitamin D, Z<br>Proportion:0.0032 (n=1)\",\"Primrose<br>Proportion:0.0032 (n=1)\",\"Probiotics, Milk Thistle<br>Proportion:0.0032 (n=1)\",\"Protein, AAs, Creatinine<br>Proportion:0.0032 (n=1)\",\"Protein, Calcium, Magnesium, D3, C,HMB<br>Proportion:0.0032 (n=1)\",\"Protein, Creatinine<br>Proportion:0.0032 (n=1)\",\"Protein, Creatinine, Vitamin C, Magnesium<br>Proportion:0.0032 (n=1)\",\"Se, VitC<br>Proportion:0.0032 (n=1)\",\"Spirulina<br>Proportion:0.0032 (n=1)\",\"Spirulina, Vitamins for hair, nails and skin<br>Proportion:0.0032 (n=1)\",\"T4 12mg, Impoztal, Laprazol, Algofren<br>Proportion:0.0032 (n=1)\",\"Turidex<br>Proportion:0.0032 (n=1)\",\"Vit C, Zinc<br>Proportion:0.0032 (n=1)\",\"Vit D, Mg, Probiotics<br>Proportion:0.0032 (n=1)\",\"Vitamin C, E, Multivitamin<br>Proportion:0.0032 (n=1)\",\"Vitamin D3<br>Proportion:0.0032 (n=1)\",\"VitC, Mg<br>Proportion:0.0032 (n=1)\",\"VitC, VitB, Multivitamin, Primrose, Magnesium<br>Proportion:0.0032 (n=1)\",\"VitC, VitD, Se, B12,Omega3, Zn<br>Proportion:0.0032 (n=1)\",\"VitC, Zn, Guarana, Probiotics<br>Proportion:0.0032 (n=1)\",\"VitD<br>Proportion:0.0032 (n=1)\",\"VitD, Novofertil<br>Proportion:0.0032 (n=1)\",\"Zetacolest<br>Proportion:0.0032 (n=1)\"][field[0].offset];\n       }","height":20,"width":200},"width":200,"height":20},"evals":["options.tooltipFormatter"],"jsHooks":[]}</script></td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+```
+:::
