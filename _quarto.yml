@@ -8,7 +8,8 @@ website:
     left:
       - text: Processing
         href: data_desc_040624.qmd
-      - modeling_110624.qmd
+      - text: Modeling
+        href: modeling_110624.qmd
 
 format:
   html:
