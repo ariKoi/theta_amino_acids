@@ -4,22 +4,21 @@ project:
 
 website:
   title: "Theta Biomarkers"
+  search: false
   navbar:
-    left:
+    left: 
       - text: Amino Acid Reference Intervals
       
-  sidebar:
-    style: "floating"
-    search: false
-    contents:
-      - section: "Data Processing"
-        contents:
-          - text: Batch 1
-            href: data_desc_040624.qmd
-      - section: "Modeling"
-        contents:
-          - text: Batch 1
-            href: modeling_110624.qmd
+sidebar:
+  style: "floating"
+  search: false
+  contents:
+    - section: "Data Batch 1"
+      contents:
+        - text: Processing
+          href: data_desc_040624.qmd
+        - text: Modeling
+          href: modeling_110624.qmd
 
 format:
   html:
@@ -28,4 +27,3 @@ format:
     toc: true
 
 editor: visual
-
