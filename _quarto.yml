@@ -8,7 +8,7 @@ website:
     left:
       - text: Processing
         href: data_desc_040624.qmd
-      - about.qmd
+      - modeling_110624.qmd
 
 format:
   html:
