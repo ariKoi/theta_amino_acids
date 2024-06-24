@@ -6,10 +6,20 @@ website:
   title: "Theta Biomarkers"
   navbar:
     left:
-      - text: Processing
-        href: data_desc_040624.qmd
-      - text: Modeling
-        href: modeling_110624.qmd
+      - text: Amino Acid Reference Intervals
+      
+  sidebar:
+    style: "floating"
+    search: false
+    contents:
+      - section: "Data Processing"
+        contents:
+          - text: Batch 1
+            href: data_desc_040624.qmd
+      - section: "Modeling"
+        contents:
+          - text: Batch 1
+            href: modeling_110624.qmd
 
 format:
   html:
