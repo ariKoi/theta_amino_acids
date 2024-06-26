@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-06-24">
+<meta name="dcterms.date" content="2024-06-26">
 
 <title>Theta Biomarkers - Modeling - Exploratory Data Analysis - Amino Acid Reference Intervals</title>
 <style>
@@ -189,7 +189,16 @@ window.Quarto = {
   <li><a href="#variable-effects" id="toc-variable-effects" class="nav-link" data-scroll-target="#variable-effects">Variable Effects</a></li>
   <li><a href="#partial-dependence-plots" id="toc-partial-dependence-plots" class="nav-link" data-scroll-target="#partial-dependence-plots">Partial Dependence Plots</a></li>
   </ul></li>
-  <li><a href="#model---3rd-pass" id="toc-model---3rd-pass" class="nav-link" data-scroll-target="#model---3rd-pass">Model - 3rd Pass</a></li>
+  <li><a href="#additional-data-collection-sample-size-suggestions" id="toc-additional-data-collection-sample-size-suggestions" class="nav-link" data-scroll-target="#additional-data-collection-sample-size-suggestions">Additional Data Collection &amp; Sample Size Suggestions</a></li>
+  <li><a href="#model---3rd-pass" id="toc-model---3rd-pass" class="nav-link" data-scroll-target="#model---3rd-pass">Model - 3rd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-1" id="toc-residuals-1" class="nav-link" data-scroll-target="#residuals-1">Residuals</a></li>
+  <li><a href="#variable-importance-1" id="toc-variable-importance-1" class="nav-link" data-scroll-target="#variable-importance-1">Variable Importance</a></li>
+  <li><a href="#variable-effects-1" id="toc-variable-effects-1" class="nav-link" data-scroll-target="#variable-effects-1">Variable Effects</a></li>
+  <li><a href="#partial-dependence-plots-1" id="toc-partial-dependence-plots-1" class="nav-link" data-scroll-target="#partial-dependence-plots-1">Partial Dependence Plots</a></li>
+  <li><a href="#validation-calibration" id="toc-validation-calibration" class="nav-link" data-scroll-target="#validation-calibration">Validation &amp; Calibration</a></li>
+  <li><a href="#dynamic-reference-intervals" id="toc-dynamic-reference-intervals" class="nav-link" data-scroll-target="#dynamic-reference-intervals">Dynamic Reference Intervals</a></li>
+  </ul></li>
   </ul></li>
   <li><a href="#alanine" id="toc-alanine" class="nav-link" data-scroll-target="#alanine"><span class="header-section-number">2</span> Alanine</a></li>
   <li><a href="#valine" id="toc-valine" class="nav-link" data-scroll-target="#valine"><span class="header-section-number">3</span> Valine</a></li>
@@ -201,7 +210,7 @@ window.Quarto = {
   <li><a href="#glutamate" id="toc-glutamate" class="nav-link" data-scroll-target="#glutamate"><span class="header-section-number">9</span> Glutamate</a></li>
   <li><a href="#methionine" id="toc-methionine" class="nav-link" data-scroll-target="#methionine"><span class="header-section-number">10</span> Methionine</a></li>
   <li><a href="#arginine" id="toc-arginine" class="nav-link" data-scroll-target="#arginine"><span class="header-section-number">11</span> Arginine</a></li>
-  <li><a href="#overlapping-outlier-ids" id="toc-overlapping-outlier-ids" class="nav-link" data-scroll-target="#overlapping-outlier-ids">Overlapping outlier IDs</a></li>
+  <li><a href="#other-section" id="toc-other-section" class="nav-link" data-scroll-target="#other-section">Other Section</a></li>
   </ul>
 </nav>
     </div>
@@ -221,7 +230,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 24, 2024</p>
+      <p class="date">June 26, 2024</p>
     </div>
   </div>
   
@@ -1456,6 +1465,10 @@ Figure&nbsp;18
 </div>
 </section>
 </section>
+<section id="additional-data-collection-sample-size-suggestions" class="level2">
+<h2 class="anchored" data-anchor-id="additional-data-collection-sample-size-suggestions">Additional Data Collection &amp; Sample Size Suggestions</h2>
+<p>The data contains responses from 300 individuals, however the model uses <strong>209</strong> complete cases i.e.&nbsp;the rest contain missing values at various covariates and are thus excluded from modeling (at the moment no imputation technique is used as it is not thought that covariates can predict each other well). The 2nd pass model is built upon most of the covariates and data, and utilizes 29 degrees of freedom. As is mentioned below for the 3rd pass model development, these many degrees of freedom are too many for the current sample size, and as a result the 2nd pass model overfits the data. In order to use and obtain a trustworthy result for the 2nd pass model, the sample size should be about <strong>435</strong> individuals. Given that new data will also contain responses with missing values, the suggestion would be to collect in total about <strong>550</strong> responses or an additional <strong>250</strong> responses.</p>
+</section>
 <section id="model---3rd-pass" class="level2">
 <h2 class="anchored" data-anchor-id="model---3rd-pass">Model - 3rd Pass</h2>
 <p>The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows <a href="https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/">source</a>:</p>
@@ -1640,6 +1653,488 @@ Figure&nbsp;19: Calibration plot for 2nd pass model. Deviation from the diagonal
 </div>
 <p>The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.</p>
 <p>From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables, sex, age and aerobics_activity can be kept in a new model with less degree of freedom spending i.e.&nbsp;less overfitting the data.</p>
+<p>Hence the model is refitted to the data with these three covariates and interactions between sex &amp; age and between age &amp; aerobics_activity.</p>
+<p>The model formula is:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 7.03 - 1.112*(sex==Male) - 0.005608*age + 0.094*aerobics_activity + 0.01383*(sex==Male)*age - 0.002978*age*aerobics_activity</code></pre>
+</div>
+</div>
+<p>The model’s reference values can be seen below in the row named <code>Adjust to</code>:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>                   id    sex age   bmi chronic_disease_flag chronic_disease_v3 meds_flag supplements_flag aerobics_activity resistance_activity    Glycine
+Low:effect       &lt;NA&gt;   &lt;NA&gt;  34 22.75                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                 0                   0  432.94967
+Adjust to       24486 Female  43 25.30                   No               None        No               No                 0                   0  685.57339
+High:effect      &lt;NA&gt;   &lt;NA&gt;  53 29.00                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                60                 540 1068.24863
+Low:prediction   1018 Female  11 16.60                   No               None        No               No                 0                   0   84.40105
+High:prediction NAKOS   Male  80 46.20                  Yes               Pain       Yes              Yes               720                 540 6945.17194
+Low              1018 Female  11 16.60                   No               None        No               No                 0                   0   84.40105
+High            NAKOS   Male  80 46.20                  Yes               Pain       Yes              Yes               720                 540 6945.17194
+
+Values:
+
+id : 1018 10985 1210 1219 1326 1338 1378 162 1623 1960 2024_1 2024_10 2024_11 2024_12 2024_2 2024_3 2024_4 2024_5 2024_6 2024_7 + 288 others 
+sex : Female Male 
+chronic_disease_flag : No Yes 
+chronic_disease_v3 : None Thyroidism Other Blood Heart Stomach Depression Pain 
+meds_flag : No Yes 
+supplements_flag : No Yes </code></pre>
+</div>
+</div>
+<section id="residuals-1" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-1">Residuals</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;20: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers. Here the algorithm reports outliers due to its parameterization, however these are weak outliers since their deviation from the straight line is not large.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;21: Plot of predictions vs model residuals. No obvious patterns can be seen.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-1" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-1">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;22: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-1" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-1">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Glycine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+34
+</td>
+<td style="padding-left:4ex; text-align: right;">
+53
+</td>
+<td style="padding-left:4ex; text-align: right;">
+19
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.1065
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.08776
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.2794
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.066340
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+aerobics_activity
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+60
+</td>
+<td style="padding-left:4ex; text-align: right;">
+60
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.1400
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.07170
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.2812
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.001298
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+sex — Male:Female
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+2
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.5174
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.08392
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.6827
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.352000
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;23: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="partial-dependence-plots-1" class="level3">
+<h3 class="anchored" data-anchor-id="partial-dependence-plots-1">Partial Dependence Plots</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot1-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;24: Effect of sex. Female subjects seem to have higher levels of Glycine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot2-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;25: Effect of age. Older subjects seem to have lower levels of Glycine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot3-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;26: Effect of aerobics_activity. Aerobics seem to reduce the concentration of Glycine but at a relatively slow pace as the exercise duration increases.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot4-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;27: Interaction between sex and age. As age increases the concentration of Glycine between males and females seems to converge to the same value.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot5" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot5-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;28: Interaction between sex and aerobics_activity. Parallel lines denote no interaction.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-var-partial-effects-plot6" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-var-partial-effects-plot6-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-var-partial-effects-plot6-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-var-partial-effects-plot6-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;29: Simultaneous effects of age and aerobics_activity. Younger/Older subjects with larger aerobic exercise durations seem to have higher/lower concentrations of Glycine. Older subjects who exercise less seem to have higher concentrations of Glycine when compared to older subjects who exercise more.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-calibration" class="level3">
+<h3 class="anchored" data-anchor-id="validation-calibration">Validation &amp; Calibration</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+3rd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.18
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.19
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.16
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.03
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.15
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.38
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.37
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.39
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.02
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.4
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.33
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.33
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.31
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.02
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.31
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.32
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.32
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.32
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.95
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.05
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.95
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+300
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><p>We note also that the successful number of resamples is 300 (i.e.&nbsp;the number of bootstrap samples that we have chosen to perform the validation). In contrast, the 2nd pass model did not use all of the 300 resamples due to divergence or singularity issues which occurred in 222 samples, and thus left only 78 resamples to use for the validation. These divergence issues were due to reasons such as missing values, categories of the chronic_disease_v3 variable with a low frequency and the complexity of the model.<br>
+In addition this 3rd pass model has used 243 individuals instead of 209 that were used by the 2nd pass model i.e.&nbsp;the smaller number of covariates used in the 3rd pass model have fewer missing values.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=243   Mean absolute error=0.02   Mean squared error=0.00064
+0.9 Quantile of absolute error=0.037</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Glycine-refit2-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Glycine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Glycine-refit2-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Glycine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;30: Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dynamic-reference-intervals" class="level3">
+<h3 class="anchored" data-anchor-id="dynamic-reference-intervals">Dynamic Reference Intervals</h3>
+<p>The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex, age and aerobics_activity make a difference since the rest of the covariates are not used.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div data-pagedtable="false">
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["lowerRI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["upperRI"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["sex"],"name":[4],"type":["chr"],"align":["left"]},{"label":["age"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["aerobics_activity"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"402.10","3":"540.98","4":"Male","5":"48","6":"30"},{"1":"2","2":"723.46","3":"919.81","4":"Female","5":"41","6":"30"},{"1":"3","2":"970.76","3":"2267.59","4":"Female","5":"9","6":"120"},{"1":"4","2":"970.76","3":"2267.59","4":"Female","5":"9","6":"120"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p>The RI for Glycine from Mayo Clinic Laboratories for ages above 18 years is 229 to 2989 μmol/g of creatinine.</p>
+</section>
 </section>
 </section>
 <section id="alanine" class="level1" data-number="2">
@@ -1650,9 +2145,6 @@ Figure&nbsp;19: Calibration plot for 2nd pass model. Deviation from the diagonal
 </section>
 <section id="cysteine" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Cysteine</h1>
-<p>From: https://www.fharrell.com/post/modplan/</p>
-<p>“Regarding the choice of statistical model, we will use ordinary multiple regression for truly continuous responses, and for outcome scales that are not truly continuous or that have heavy ties in some of their values, the proportional odds ordinal logistic model. Particular strategies and assumption checking procedures for these models are given in Frank E. Harrell i.e.&nbsp;rms book”</p>
-<p>Cysteine is a case with i.e.&nbsp;heavy ties in some of their values i.e.&nbsp;more than a third of its values are zero, hence use the proportional odds ordinal logistic model for this amino acid.</p>
 </section>
 <section id="taurine" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Taurine</h1>
@@ -1675,8 +2167,8 @@ Figure&nbsp;19: Calibration plot for 2nd pass model. Deviation from the diagonal
 <section id="arginine" class="level1" data-number="11">
 <h1 data-number="11"><span class="header-section-number">11</span> Arginine</h1>
 </section>
-<section id="overlapping-outlier-ids" class="level1 unnumbered">
-<h1 class="unnumbered">Overlapping outlier IDs</h1>
+<section id="other-section" class="level1 unnumbered">
+<h1 class="unnumbered">Other Section</h1>
 
 
 </section>

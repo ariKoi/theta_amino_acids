@@ -48,7 +48,7 @@ Q: On the variables `aerobics_times_per_week` and `resistance_times_per_week`, s
 
 Q: What is the meaning of `aerobics_duration_min`? There are 4 much larger values than the rest. A: This is the duration that the person exercises per time/exercise session.
 
-For ids: 41685 1210 39817 39517 changes of column `aerobics_duration_min` from 60120 to 90 (i.e. average) from 3040 to 35 from 4550 to 47.5 from 1520 to 17.5
+For ids: 41685, 1210, 39817 and 39517 changes of column `aerobics_duration_min` from 60120 to 90 (i.e. average), from 3040 to 35, from 4550 to 47.5 and from 1520 to 17.5
 
 BMI is weight/height\^2 kg_per_m2, no need to be calculated in the excel source file as it is calculated after the data are imported. Also deleted empty columns in between non-empty ones. Note also the column names and the structure rearrangement on the exercise related columns. From the column name `Glycine μmol/g crea` removed the "crea". Changed the name of `Glutamic Acid μmol/g` to `Glutamate μmol/g`. For the `aerobics_times_per_week` column there are 2 values of 45353 45385 of ids 25983 44856 which I coded as 100 i.e. they exercise but without a specific number.
 

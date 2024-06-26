@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-06-24">
+<meta name="dcterms.date" content="2024-06-26">
 
 <title>Theta Biomarkers - Data Description/Processing - Ref_ranges_AAU_2 - 040624</title>
 <style>
@@ -168,7 +168,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 24, 2024</p>
+      <p class="date">June 26, 2024</p>
     </div>
   </div>
   
@@ -186,7 +186,7 @@ ul.task-list li input[type="checkbox"] {
 <p>id 40217 and 39683 have strange weight values. A: Take the average of these values.</p>
 <p>Q: On the variables <code>aerobics_times_per_week</code> and <code>resistance_times_per_week</code>, some ids have a check mark and two ids have strange values. What is the actual meaning? A: It means that in the survey form the person just said that they are exercising without specifying how many times per week. I have coded such cases with the value of 100 so that column remains of numeric type. However I change this, see here a bit further below. Also if the value was 3-4 meaning 3 or 4 times per weeks, I converted this to 3.5. Similarly for other ranges i.e.&nbsp;1-2 = 1.5</p>
 <p>Q: What is the meaning of <code>aerobics_duration_min</code>? There are 4 much larger values than the rest. A: This is the duration that the person exercises per time/exercise session.</p>
-<p>For ids: 41685 1210 39817 39517 changes of column <code>aerobics_duration_min</code> from 60120 to 90 (i.e.&nbsp;average) from 3040 to 35 from 4550 to 47.5 from 1520 to 17.5</p>
+<p>For ids: 41685, 1210, 39817 and 39517 changes of column <code>aerobics_duration_min</code> from 60120 to 90 (i.e.&nbsp;average), from 3040 to 35, from 4550 to 47.5 and from 1520 to 17.5</p>
 <p>BMI is weight/height^2 kg_per_m2, no need to be calculated in the excel source file as it is calculated after the data are imported. Also deleted empty columns in between non-empty ones. Note also the column names and the structure rearrangement on the exercise related columns. From the column name <code>Glycine μmol/g crea</code> removed the “crea”. Changed the name of <code>Glutamic Acid μmol/g</code> to <code>Glutamate μmol/g</code>. For the <code>aerobics_times_per_week</code> column there are 2 values of 45353 45385 of ids 25983 44856 which I coded as 100 i.e.&nbsp;they exercise but without a specific number.</p>
 <p>With regards to the 100 valued cases on the exercise related columns: If <code>aerobics_times_per_week</code> is checked but the corresponding <code>aerobics_duration_min</code> column had a missing value i.e.&nbsp;no exercise duration, then the <code>aerobics_times_per_week</code> value is 0 i.e.&nbsp;no exercise. For the similar cases but with <code>aerobics_duration_min</code> having a non-zero value, then the value is checked manually and an expected value is chosen i.e.&nbsp;30-45 min per week probably means once a week the person is exercising. Similarly for the <code>resistance_times_per_week</code> / <code>resistance_duration_min</code> pair of columns.</p>
 <p>A new columns named <code>chronic_disease_v2</code> was created that is based on the <code>chronic_disease</code> column. It is a recoded version of the <code>chronic_disease</code> column having more general categories of disease in order to ease interpretation and to increase the sample size for each disease category. Information was also utilized from the <code>meds</code> column for cases where the <code>chronic_disease</code> value was missing but the <code>meds</code> value was not. Medicine names and their relation to a disease type were checked via search engine.</p>
