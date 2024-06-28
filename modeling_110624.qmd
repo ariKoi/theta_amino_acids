@@ -32,7 +32,7 @@ fontsize: 15px
 ---
 
 ```{r}
-load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")   
+load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")     
 # source of object and function definitions are in file:
 # /Users/aristidiskoitsanos/Desktop/ari/metabolomics/biomic_aminoAcids_1.Rmd
 ```
@@ -47,7 +47,7 @@ library(rms) # maskings
 library(referenceIntervals)
 library(extremevalues)
 library(gt) # masked from ‘package:Hmisc’: html
-library(kableExtra) # masked from ‘package:dplyr’: group_rows 
+library(kableExtra) # masked from ‘package:dplyr’: group_rows   
 ```
 
 Data source: [Ref ranges - AAU file](https://docs.google.com/spreadsheets/d/1I5IUbS86slfxIObDiZYoIhut9WrKXKpE/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true)
@@ -690,11 +690,11 @@ ggplot(Predict(Glycine_mod_refit2, aerobics_activity, sex, fun = exp))
 
 ```{r}
 #| label: fig-Glycine-refit2-var-partial-effects-plot6
-#| fig-cap: "Simultaneous effects of age and aerobics_activity. Younger/Older subjects with larger aerobic exercise durations seem to have higher/lower concentrations of Glycine. Older subjects who exercise less seem to have higher concentrations of Glycine when compared to older subjects who exercise more." 
-#| fig-width: 8 
-
+#| fig-cap: "Simultaneous effects of age and aerobics_activity. Younger/Older subjects with larger aerobic exercise durations seem to have higher/lower concentrations of Glycine. Older subjects who exercise less seem to have higher concentrations of Glycine when compared to older subjects who exercise more."
+#| fig-width: 8  
+  
 # pred_intx is defined in workspace
-bplot(pred_intx, yhat ~ age + aerobics_activity, lfun = lattice::wireframe, zlab = "Glycine\n",  screen=list(z=-30, x=-75), ylabrot = 45, cex.lab = 0.55, cex.adj = 0.6)    
+bplot(pred_intx, yhat ~ age + aerobics_activity, lfun = lattice::wireframe, zlab = "Glycine\n",  screen=list(z=-30, x=-75), ylabrot = 45, cex.lab = 0.55, cex.adj = 0.6)                      
 ```
 
 ### Validation & Calibration 
@@ -786,6 +786,9 @@ plot(Glycine_mod_refit2_cal)
 The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex, age and aerobics_activity make a difference since the rest of the covariates are not used. 
 
 ```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
 # new_dat defined in loaded workspace
 dynRI <- new_dat |>
   nest(.by = id) |>
@@ -798,21 +801,971 @@ dynRI <- new_dat |>
   select(-data) |>
   inner_join(new_dat |> select(id, sex, age, aerobics_activity), by = "id") |>
   mutate(across(where(is.double), ~ round(., 2)))
+# |> relocate(aerobics_activity, .before = bmi) 
 
-# options(width = 200) 
-dynRI   
+dynRI
 ```
 
 The RI for Glycine from Mayo Clinic Laboratories for ages above 18 years is 229 to 2989 μmol/g of creatinine.
 
 # Alanine
 
+## Model - 1st Pass
+
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Alanine-nonlinearities 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Alanine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datAlanine, p = 2))
+abline(v = c(-0.01, 0, 0.01), lty = "dashed")
+```
+
+Non-linearity is evident in covariates `sex`, `aerobics_activity`, `age` (smaller $\rho^2$ with opposite sign), `bmi` (smaller $\rho^2$ with opposite sign) and `chronic_disease_v3` ($\rho^2$ with opposite sign).
+
+To capture non-linearities only interactions amongst these 4 variables will be considered in the model. Specifically, the model formula will contain the following terms or associations:
+
+log(Alanine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1) + sex:bmi + bmi:log(aerobics_activity+1) + age:bmi + bmi:chronic_disease_v3 + bmi:supplements_flag + age:supplements_flag + sex:supplements_flag + sex:log(aerobics_activity+1)
+
+Where the `:` symbol denotes the interaction between two variables. 
+
+Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
+
+## Outlier analysis based on model residuals
+
+When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e. difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can't be explained well by the model (i.e. missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. 
+This is also appropriate in terms of developing a model that will be used for reference interval construction i.e. cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection. 
+
+```{r}
+#| label: fig-Alanine-resid-1stpass 
+#| fig-cap: "Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval." 
+
+thematic::thematic_off()      
+DescTools::Desc(resid_Alanine_mod, plotit = TRUE, digits = 2, main = "Residual Distribution - Alanine Model")
+```
+
+In comparison to the previous outlier analysis as seen [here](https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link), the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution. 
+
+@fig-Alanine-outliers shows a quantile-quantile plot where the quantiles of the model's residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs). 
+
+For the rest of the figures below (i.e. for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e. horizontal lines in plot). 
+
+```{r}
+#| label: fig-Alanine-outliers 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers." 
+
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Alanine_mod$outliersPlot
+```
+
+```{r}
+gt(out_resid_Alanine_mod$outliers) |> 
+  tab_header(
+    title = md("**Outliers**")
+  ) |>  
+  fmt_number(columns = Alanine) |> 
+  tab_footnote(
+    footnote = "Red coloured data points in above QQ plot",
+    locations = cells_column_labels(columns = id)
+  ) |> 
+  tab_footnote(
+    footnote = "μmol/g (model residual)",
+    locations = cells_column_labels(columns = Alanine)
+  ) |> 
+  tab_options(table.background.color = "lavenderblush3", 
+              table.font.size = "12px", 
+              table.font.style = "oblique") |> 
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+      ),
+    locations = cells_body(
+      columns = Alanine
+    )
+  )
+```
+
+## Model - 2nd Pass
+
+Here the model is refitted to the data excluding the outlier values detected in the previous step. 
+
+### Residuals
+
+```{r}
+#| label: fig-Alanine-refit-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed)." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Alanine_mod_refit$outliersPlot
+```
+
+```{r}
+#| label: fig-Alanine-refit-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Alanine_mod_refit), resid_Alanine_mod_refit, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Alanine-refit-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Alanine_mod_refit), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 19, nx = NA, col = "black")
+# main = expression(paste("Proportion of overall model ", R^2, " that is due to each predictor"))
+# https://library.virginia.edu/data/articles/mathematical-annotation-in-r
+# With margin = "partial R2" I believe if you add up all main effect partial R2s and then subtract all interaction effect partial R2s, you get the total R2 as printed from the model object. 
+# ALso the sort does not match with the margin...
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Alanine_mod_refit 
+# copy-paste HTML then eval=FALSE in chunk setttings
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Alanine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.25</td>
+<td style='padding-left:4ex; text-align: right;'> 53.00</td>
+<td style='padding-left:4ex; text-align: right;'> 18.75</td>
+<td style='padding-left:4ex; text-align: right;'> 0.002985</td>
+<td style='padding-left:4ex; text-align: right;'>0.1982</td>
+<td style='padding-left:4ex; text-align: right;'>-0.38840</td>
+<td style='padding-left:4ex; text-align: right;'> 0.3943</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.90</td>
+<td style='padding-left:4ex; text-align: right;'> 29.35</td>
+<td style='padding-left:4ex; text-align: right;'>  6.45</td>
+<td style='padding-left:4ex; text-align: right;'>-0.034680</td>
+<td style='padding-left:4ex; text-align: right;'>0.1273</td>
+<td style='padding-left:4ex; text-align: right;'>-0.28610</td>
+<td style='padding-left:4ex; text-align: right;'> 0.2167</td>
+</tr>
+<tr>
+<td style='text-align: left;'>aerobics_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; text-align: right;'>-0.162800</td>
+<td style='padding-left:4ex; text-align: right;'>0.1685</td>
+<td style='padding-left:4ex; text-align: right;'>-0.49540</td>
+<td style='padding-left:4ex; text-align: right;'> 0.1699</td>
+</tr>
+<tr>
+<td style='text-align: left;'>resistance_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; text-align: right;'>540.00</td>
+<td style='padding-left:4ex; text-align: right;'>540.00</td>
+<td style='padding-left:4ex; text-align: right;'> 0.023450</td>
+<td style='padding-left:4ex; text-align: right;'>0.1954</td>
+<td style='padding-left:4ex; text-align: right;'>-0.36220</td>
+<td style='padding-left:4ex; text-align: right;'> 0.4092</td>
+</tr>
+<tr>
+<td style='text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  2.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.653700</td>
+<td style='padding-left:4ex; text-align: right;'>0.1922</td>
+<td style='padding-left:4ex; text-align: right;'>-1.03300</td>
+<td style='padding-left:4ex; text-align: right;'>-0.2743</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Thyroidism:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  2.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.097710</td>
+<td style='padding-left:4ex; text-align: right;'>0.2452</td>
+<td style='padding-left:4ex; text-align: right;'>-0.58180</td>
+<td style='padding-left:4ex; text-align: right;'> 0.3863</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Other:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  3.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.250300</td>
+<td style='padding-left:4ex; text-align: right;'>0.2391</td>
+<td style='padding-left:4ex; text-align: right;'>-0.22160</td>
+<td style='padding-left:4ex; text-align: right;'> 0.7223</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Blood:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  4.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.320000</td>
+<td style='padding-left:4ex; text-align: right;'>0.4643</td>
+<td style='padding-left:4ex; text-align: right;'>-1.23700</td>
+<td style='padding-left:4ex; text-align: right;'> 0.5966</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Heart:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  5.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.539600</td>
+<td style='padding-left:4ex; text-align: right;'>0.5862</td>
+<td style='padding-left:4ex; text-align: right;'>-0.61760</td>
+<td style='padding-left:4ex; text-align: right;'> 1.6970</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Stomach:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  6.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.149300</td>
+<td style='padding-left:4ex; text-align: right;'>0.4837</td>
+<td style='padding-left:4ex; text-align: right;'>-1.10400</td>
+<td style='padding-left:4ex; text-align: right;'> 0.8057</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Depression:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  7.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.023430</td>
+<td style='padding-left:4ex; text-align: right;'>0.6691</td>
+<td style='padding-left:4ex; text-align: right;'>-1.29800</td>
+<td style='padding-left:4ex; text-align: right;'> 1.3440</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Pain:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  8.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 2.103000</td>
+<td style='padding-left:4ex; text-align: right;'>1.0820</td>
+<td style='padding-left:4ex; text-align: right;'>-0.03355</td>
+<td style='padding-left:4ex; text-align: right;'> 4.2400</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>supplements_flag --- Yes:No</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>  2.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.367900</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.1704</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.03139</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.7044</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Alanine-refit-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Alanine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decrease on Alanine reference value of ", round(ddAlanine_refit$limits["Alanine"][2,]), " μmol/g (median)"), nb = 14)
+```
+
+## Model - 3rd Pass
+
+The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+
+* Estimate model performance in the original sample of size n 
+
+* Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample 
+
+* Apply the model obtained in the bootstrap sample to the original sample 
+
+* Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e. overfitting) 
+
+* Repeat the process many times (e.g. 300) and average over the repeats to obtain a final estimate of optimism for each measure 
+
+* Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Alanine_mod_refit_val, digits = 2, caption = "2nd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+2nd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.32</td>
+<td style='padding-left:3ex; text-align: center;'>0.46</td>
+<td style='padding-left:3ex; text-align: center;'>-0.33</td>
+<td style='padding-left:3ex; text-align: center;'>0.79</td>
+<td style='padding-left:3ex; text-align: center;'>-0.47</td>
+<td style='padding-left:3ex; text-align: center;'>14</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.48</td>
+<td style='padding-left:3ex; text-align: center;'>0.38</td>
+<td style='padding-left:3ex; text-align: center;'>0.94</td>
+<td style='padding-left:3ex; text-align: center;'>-0.56</td>
+<td style='padding-left:3ex; text-align: center;'>1.03</td>
+<td style='padding-left:3ex; text-align: center;'>14</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.53</td>
+<td style='padding-left:3ex; text-align: center;'>0.64</td>
+<td style='padding-left:3ex; text-align: center;'>0.35</td>
+<td style='padding-left:3ex; text-align: center;'>0.29</td>
+<td style='padding-left:3ex; text-align: center;'>0.24</td>
+<td style='padding-left:3ex; text-align: center;'>14</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>3.02</td>
+<td style='padding-left:3ex; text-align: center;'>-3.02</td>
+<td style='padding-left:3ex; text-align: center;'>3.02</td>
+<td style='padding-left:3ex; text-align: center;'>14</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.5</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.5</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.5</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>14</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model. 
+
+By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias. 
+
+```{r}
+#| label: fig-Alanine-refit-cal
+#| fig-cap: "Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Alanine_mod_refit_cal)
+```
+
+The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.  
+
+From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables, sex and supplements_flag can be kept in a new model with less degree of freedom spending i.e. less overfitting the data. 
+
+Hence the model is refitted to the data with these just 2 covariates (Note: Situation might change when more data are collected and the model is refit).
+
+The model formula is: 
+
+```{r}
+noquote(reg_f_Alanine_refit2)
+```
+
+The model's reference values can be seen below in the row named `Adjust to`:
+
+```{r}
+options(width = 164)
+ddAlanine_refit  
+```
+
+### Residuals
+
+```{r}
+#| label: fig-Alanine-refit2-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers. Here the algorithm reports outliers due to its parameterization, however these are weak outliers since their deviation from the straight line is not large." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Alanine_mod_refit2$outliersPlot
+```
+
+```{r}
+#| label: fig-Alanine-refit2-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen. Since the model covariates are binary, there are four unique predictions, one for each combination of sex and supplements_flag category." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Alanine_mod_refit2), resid_Alanine_mod_refit2, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Alanine-refit2-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Alanine_mod_refit2), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 2, nx = NA, col = "black")
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Alanine_mod_refit2 
+# eval=FALSE after html copy-pasting below
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Alanine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; text-align: right;'>1</td>
+<td style='padding-left:4ex; text-align: right;'>2</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.5242</td>
+<td style='padding-left:4ex; text-align: right;'>0.1029</td>
+<td style='padding-left:4ex; text-align: right;'>-0.72690</td>
+<td style='padding-left:4ex; text-align: right;'>-0.3214</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>supplements_flag --- Yes:No</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>1</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>2</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.1736</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.1061</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.03533</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.3825</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Alanine-refit2-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Alanine_mod_refit2, digits = 1, log = TRUE, main = paste0("% increase/decrease on Alanine reference value of ", round(ddAlanine_refit$limits["Alanine"][2,]), " μmol/g (median)")) # nb = 5 reduces the spacing between the CIs, looks better without it on the site
+```
+
+### Partial Dependence Plots
+
+```{r}
+#| label: fig-Alanine-refit2-var-partial-effects-plot1
+#| fig-cap: "Effect of sex. Female subjects seem to have higher levels of Alanine concentration." 
+#| fig-width: 8  
+
+ggplot(Predict(Alanine_mod_refit2, sex, fun = exp))
+```
+
+```{r}
+#| label: fig-Alanine-refit2-var-partial-effects-plot2
+#| fig-cap: "Effect of supplement intake. Taking supplements seems to increase levels of Alanine concentration, but without strong evidence."
+#| fig-width: 8 
+
+ggplot(Predict(Alanine_mod_refit2, supplements_flag, fun = exp))
+```
+
+### Validation & Calibration 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Alanine_mod_refit2_val, digits = 2, caption = "3rd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+3rd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.11</td>
+<td style='padding-left:3ex; text-align: center;'>0.11</td>
+<td style='padding-left:3ex; text-align: center;'>0.1</td>
+<td style='padding-left:3ex; text-align: center;'>0.02</td>
+<td style='padding-left:3ex; text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.62</td>
+<td style='padding-left:3ex; text-align: center;'>0.61</td>
+<td style='padding-left:3ex; text-align: center;'>0.62</td>
+<td style='padding-left:3ex; text-align: center;'>-0.01</td>
+<td style='padding-left:3ex; text-align: center;'>0.63</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.29</td>
+<td style='padding-left:3ex; text-align: center;'>0.29</td>
+<td style='padding-left:3ex; text-align: center;'>0.28</td>
+<td style='padding-left:3ex; text-align: center;'>0.01</td>
+<td style='padding-left:3ex; text-align: center;'>0.28</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.1</td>
+<td style='padding-left:3ex; text-align: center;'>-0.1</td>
+<td style='padding-left:3ex; text-align: center;'>0.1</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.98</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.02</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.98</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+We note also that the successful number of resamples is 300 (i.e. the number of bootstrap samples that we have chosen to perform the validation). In contrast, the 2nd pass model did not use all of the 300 resamples due to divergence or singularity issues which occurred in 286 samples, and thus left only 14 resamples to use for the validation. These divergence issues were due to reasons such as missing values, categories of the chronic_disease_v3 variable with a low frequency and the complexity of the model.  
+In addition this 3rd pass model has used 254 individuals instead of 213 that were used by the 2nd pass model i.e. the smaller number of covariates used in the 3rd pass model have fewer missing values. 
+
+```{r}
+#| label: fig-Alanine-refit2-cal
+#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Alanine_mod_refit2_cal)
+```
+
+### Dynamic Reference Intervals 
+
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used. 
+
+```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
+# new_dat defined in loaded workspace
+dynRI <- new_dat |>
+  nest(.by = id) |>
+  mutate(preds = map(data, function(df) predict_f(Alanine_mod_refit2, new_dat = df, conf_type = "mean"))) |>
+  unnest_wider(col = preds, names_repair = function(x) {
+    nam <- x
+    nam[3:4] <- paste0(nam[3:4], "RI")
+    nam
+  }) |>
+  select(-data) |>
+  inner_join(new_dat |> select(id, sex, supplements_flag), by = "id") |>
+  mutate(across(where(is.double), ~ round(., 2)))
+
+dynRI
+```
+
+The RI for Alanine from Mayo Clinic Laboratories for ages above 18 years is 56 to 560 μmol/g of creatinine.
 
 # Valine
 
+## Model - 1st Pass
 
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Valine-nonlinearities 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Valine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datValine, p = 2))
+abline(v = c(-0.01/3, 0.01/3), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Non-linearity is evident in covariates `sex`, `resistance_activity`, `bmi` and `chronic_disease_v3`. However their $\rho^2$ values are very small, hence non-linearity strength is very low..
+
+To capture non-linearities only interactions amongst these 4 variables are considered in the model. Specifically, the model formula contains the following terms or associations:
+
+log(Valine) ~ sex + age + bmi + chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + sex:bmi + sex:log(resistance_activity+1) + log(resistance_activity+1):chronic_disease_v3 + log(resistance_activity+1):bmi
+
+Where the `:` symbol denotes the interaction between two variables. 
+
+Even though this model uses information from all meta data covariates, and is in addition quite complex due to the modeled interactions, the global significance of the model is very small i.e. global p-value based on the Likelihood Ratio Test is 0.62, well above the 0.05 typical threshold. 
+As a result, and after different combinations of the covariates were tested in the model, the best model was the one including only bmi and resistance_activity as covariates. This model had a global regression p-value of 0.0542 (marginally significant). 
+To note, this statistic is further improved with the 2nd pass model below i.e. p-value of 0.0175
+
+Thus the 1st pass model formula is:
+
+log(Valine) ~ bmi + log(resistance_activity+1)
+
+Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
+
+## Outlier analysis based on model residuals
+
+When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e. difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can't be explained well by the model (i.e. missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. 
+This is also appropriate in terms of developing a model that will be used for reference interval construction i.e. cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection. 
+
+```{r}
+#| label: fig-Valine-resid-1stpass 
+#| fig-cap: "Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval." 
+
+thematic::thematic_off()       
+DescTools::Desc(resid_Valine_mod, plotit = TRUE, digits = 2, main = "Residual Distribution - Valine Model")
+```
+
+In comparison to the previous outlier analysis as seen [here](https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link), the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution. 
+
+@fig-Valine-outliers shows a quantile-quantile plot where the quantiles of the model's residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs). 
+
+For the rest of the figures below (i.e. for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e. horizontal lines in plot). 
+
+```{r}
+#| label: fig-Valine-outliers 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers." 
+
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Valine_mod$outliersPlot
+```
+
+```{r}
+gt(out_resid_Valine_mod$outliers) |> 
+  tab_header(
+    title = md("**Outliers**")
+  ) |>  
+  fmt_number(columns = Valine) |> 
+  tab_footnote(
+    footnote = "Red coloured data points in above QQ plot",
+    locations = cells_column_labels(columns = id)
+  ) |> 
+  tab_footnote(
+    footnote = "μmol/g (model residual)",
+    locations = cells_column_labels(columns = Valine)
+  ) |> 
+  tab_options(table.background.color = "lavenderblush3", 
+              table.font.size = "12px", 
+              table.font.style = "oblique") |> 
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+      ),
+    locations = cells_body(
+      columns = Valine
+    )
+  )
+```
+
+## Model - 2nd Pass
+
+Here the model is refitted to the data excluding the outlier values detected in the previous step. 
+
+### Residuals
+
+```{r}
+#| label: fig-Valine-refit-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed)." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Valine_mod_refit$outliersPlot
+```
+
+```{r}
+#| label: fig-Valine-refit-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Valine_mod_refit), resid_Valine_mod_refit, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Valine-refit-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Valine_mod_refit), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 2, nx = NA, col = "black")
+# main = expression(paste("Proportion of overall model ", R^2, " that is due to each predictor"))
+# https://library.virginia.edu/data/articles/mathematical-annotation-in-r
+# With margin = "partial R2" I believe if you add up all main effect partial R2s and then subtract all interaction effect partial R2s, you get the total R2 as printed from the model object. 
+# ALso the sort does not match with the margin...
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Valine_mod_refit 
+# copy-paste HTML then eval=FALSE in chunk setttings
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Valine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.8</td>
+<td style='padding-left:4ex; text-align: right;'> 29.1</td>
+<td style='padding-left:4ex; text-align: right;'>  6.3</td>
+<td style='padding-left:4ex; text-align: right;'> 0.05646</td>
+<td style='padding-left:4ex; text-align: right;'>0.03123</td>
+<td style='padding-left:4ex; text-align: right;'>-0.005082</td>
+<td style='padding-left:4ex; text-align: right;'>0.118000</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>resistance_activity</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>450.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>450.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.14610</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.07464</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.293200</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.001033</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Valine-refit-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Valine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decrease on Valine reference value of ", round(ddValine_refit$limits["Valine"][2,]), " μmol/g (median)"))
+```
+
+For Valine, there's no 3rd pass model since the 2nd pass is built on just 2 covariates and does not overfit.
+
+The model formula is: 
+
+```{r}
+noquote(reg_f_Valine_refit)
+```
+
+The model's reference values can be seen below in the row named `Adjust to`:
+
+```{r}
+options(width = 164)
+ddValine_refit  
+```
+
+### Partial Dependence Plots
+
+```{r}
+#| label: fig-Valine-refit-var-partial-effects-plot1
+#| fig-cap: "Effect of bmi. Valine concentration increasing with bmi on average." 
+#| fig-width: 8  
+
+ggplot(Predict(Valine_mod_refit, bmi, fun = exp))
+```
+
+```{r}
+#| label: fig-Valine-refit-var-partial-effects-plot2
+#| fig-cap: "Effect of resistance training. Spending more time on resistance training seems to decrease levels of Valine concentration, but at a relatively slow pace. The effect is more prominent from no resistance training to about 4 hours per week i.e. 250/60"
+#| fig-width: 8 
+
+ggplot(Predict(Valine_mod_refit, resistance_activity, fun = exp))
+```
+
+```{r}
+#| label: fig-Valine-refit-var-partial-effects-plot3
+#| fig-cap: "Simultaneous effects of bmi and resistance_activity. Individuals who do not include resistance training in their fitness program have higher levels of Valine concentration, and those levels increase with the bmi."
+#| fig-width: 8  
+  
+# pred_intx_Valine is defined in workspace
+bplot(pred_intx_Valine, yhat ~ bmi + resistance_activity, lfun = lattice::wireframe, zlab = "Valine\n",  screen=list(z=120, x=-75), cex.lab = 0.55, cex.adj = 0.6)
+```
+
+### Validation & Calibration 
+
+To assess model performance, a validation and calibration analysis is conducted below as with other amino acids. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+
+* Estimate model performance in the original sample of size n 
+
+* Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample 
+
+* Apply the model obtained in the bootstrap sample to the original sample 
+
+* Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e. overfitting) 
+
+* Repeat the process many times (e.g. 300) and average over the repeats to obtain a final estimate of optimism for each measure 
+
+* Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Valine_mod_refit_val, digits = 2, caption = "2nd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+2nd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.04</td>
+<td style='padding-left:3ex; text-align: center;'>0.04</td>
+<td style='padding-left:3ex; text-align: center;'>0.02</td>
+<td style='padding-left:3ex; text-align: center;'>0.02</td>
+<td style='padding-left:3ex; text-align: center;'>0.01</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.15</td>
+<td style='padding-left:3ex; text-align: center;'>0.14</td>
+<td style='padding-left:3ex; text-align: center;'>0.15</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.15</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.08</td>
+<td style='padding-left:3ex; text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>0.08</td>
+<td style='padding-left:3ex; text-align: center;'>0.01</td>
+<td style='padding-left:3ex; text-align: center;'>0.07</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.17</td>
+<td style='padding-left:3ex; text-align: center;'>-0.17</td>
+<td style='padding-left:3ex; text-align: center;'>0.17</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.95</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.05</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.95</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+```{r}
+#| label: fig-Valine-refit-cal
+#| fig-cap: "Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias. The larger deviations occur to the left of the plot which means that the model has some tendency to underestimate to the true Valine concentration value i.e. if the model predicts 23.33 μmol/g, then actual is 23.33*exp(mae=0.015) = 23.68 μmol/g" 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Valine_mod_refit_cal)
+```
+
+### Dynamic Reference Intervals 
+
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used. 
+
+```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
+# new_dat defined in loaded workspace
+dynRI <- new_dat |>
+  nest(.by = id) |>
+  mutate(preds = map(data, function(df) predict_f(Valine_mod_refit, new_dat = df, conf_type = "mean"))) |>
+  unnest_wider(col = preds, names_repair = function(x) {
+    nam <- x
+    nam[3:4] <- paste0(nam[3:4], "RI")
+    nam
+  }) |>
+  select(-data) |>
+  inner_join(new_dat |> select(id, bmi, resistance_activity), by = "id") |>
+  mutate(across(where(is.double), ~ round(., 2)))
+
+dynRI
+```
+
+The RI for Valine from Mayo Clinic Laboratories for ages above 18 years is 11 to 88 μmol/g of creatinine.
 
 # Cysteine
+
 
 
 # Taurine
