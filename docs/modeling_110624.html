@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-06-28">
+<meta name="dcterms.date" content="2024-07-01">
 
 <title>Theta Biomarkers - Modeling - Exploratory Data Analysis - Amino Acid Reference Intervals</title>
 <style>
@@ -234,7 +234,26 @@ window.Quarto = {
   <li><a href="#dynamic-reference-intervals-2" id="toc-dynamic-reference-intervals-2" class="nav-link" data-scroll-target="#dynamic-reference-intervals-2">Dynamic Reference Intervals</a></li>
   </ul></li>
   </ul></li>
-  <li><a href="#cysteine" id="toc-cysteine" class="nav-link" data-scroll-target="#cysteine"><span class="header-section-number">4</span> Cysteine</a></li>
+  <li><a href="#cysteine" id="toc-cysteine" class="nav-link" data-scroll-target="#cysteine"><span class="header-section-number">4</span> Cysteine</a>
+  <ul class="collapse">
+  <li><a href="#model---1st-pass-3" id="toc-model---1st-pass-3" class="nav-link" data-scroll-target="#model---1st-pass-3">Model - 1st Pass</a></li>
+  <li><a href="#outlier-analysis-based-on-model-residuals-3" id="toc-outlier-analysis-based-on-model-residuals-3" class="nav-link" data-scroll-target="#outlier-analysis-based-on-model-residuals-3">Outlier analysis based on model residuals</a></li>
+  <li><a href="#model---2nd-pass-3" id="toc-model---2nd-pass-3" class="nav-link" data-scroll-target="#model---2nd-pass-3">Model - 2nd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-5" id="toc-residuals-5" class="nav-link" data-scroll-target="#residuals-5">Residuals</a></li>
+  <li><a href="#variable-importance-5" id="toc-variable-importance-5" class="nav-link" data-scroll-target="#variable-importance-5">Variable Importance</a></li>
+  <li><a href="#variable-effects-5" id="toc-variable-effects-5" class="nav-link" data-scroll-target="#variable-effects-5">Variable Effects</a></li>
+  </ul></li>
+  <li><a href="#model---3rd-pass-2" id="toc-model---3rd-pass-2" class="nav-link" data-scroll-target="#model---3rd-pass-2">Model - 3rd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-6" id="toc-residuals-6" class="nav-link" data-scroll-target="#residuals-6">Residuals</a></li>
+  <li><a href="#variable-importance-6" id="toc-variable-importance-6" class="nav-link" data-scroll-target="#variable-importance-6">Variable Importance</a></li>
+  <li><a href="#variable-effects-6" id="toc-variable-effects-6" class="nav-link" data-scroll-target="#variable-effects-6">Variable Effects</a></li>
+  <li><a href="#partial-dependence-plots-4" id="toc-partial-dependence-plots-4" class="nav-link" data-scroll-target="#partial-dependence-plots-4">Partial Dependence Plots</a></li>
+  <li><a href="#validation-calibration-3" id="toc-validation-calibration-3" class="nav-link" data-scroll-target="#validation-calibration-3">Validation &amp; Calibration</a></li>
+  <li><a href="#dynamic-reference-intervals-3" id="toc-dynamic-reference-intervals-3" class="nav-link" data-scroll-target="#dynamic-reference-intervals-3">Dynamic Reference Intervals</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#taurine" id="toc-taurine" class="nav-link" data-scroll-target="#taurine"><span class="header-section-number">5</span> Taurine</a></li>
   <li><a href="#isoleucine" id="toc-isoleucine" class="nav-link" data-scroll-target="#isoleucine"><span class="header-section-number">6</span> Isoleucine</a></li>
   <li><a href="#leucine" id="toc-leucine" class="nav-link" data-scroll-target="#leucine"><span class="header-section-number">7</span> Leucine</a></li>
@@ -262,7 +281,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 28, 2024</p>
+      <p class="date">July 1, 2024</p>
     </div>
   </div>
   
@@ -4774,6 +4793,1555 @@ Figure&nbsp;56: Calibration plot for 2nd pass model. Deviation from the diagonal
 </section>
 <section id="cysteine" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Cysteine</h1>
+<section id="model---1st-pass-3" class="level2">
+<h2 class="anchored" data-anchor-id="model---1st-pass-3">Model - 1st Pass</h2>
+<p>Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e.&nbsp;with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-nonlinearities" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-nonlinearities-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;57: Spearman’s test for assessing non-linear relationships with the response. The further away from 0 the adjusted <span class="math inline">\(\rho^2\)</span> score is, the higher the degree of non-linearity for that covariate.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Non-linearity evident in bmi, resistance_activity (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign), chronic_disease_v3 (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign). Most rho values are relatively small though with bmi being the exception</p>
+<p>To capture non linearities interactions amongst these 3 variables will be considered, as well as splines for bmi. Also age will be included as it has some linearity association:</p>
+<p>log(Cysteine) ~ rcs(bmi, 4) + age + chronic_disease_v3 + log(resistance_activity+1) + log(resistance_activity+1):rcs(bmi, 4)</p>
+<p>Where the <code>:</code> symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 4 knots.</p>
+<p>Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken.</p>
+</section>
+<section id="outlier-analysis-based-on-model-residuals-3" class="level2">
+<h2 class="anchored" data-anchor-id="outlier-analysis-based-on-model-residuals-3">Outlier analysis based on model residuals</h2>
+<p>When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e.&nbsp;difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can’t be explained well by the model (i.e.&nbsp;missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. This is also appropriate in terms of developing a model that will be used for reference interval construction i.e.&nbsp;cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>------------------------------------------------------------------------------------------------------------------------------------------------------------------ 
+Residual Distribution - Cysteine Model
+
+  length      n       NAs  unique    0s   mean  meanCI'
+     192    155        37     = n     0   0.00   -0.11
+          80.7%     19.3%          0.0%           0.11
+                                                      
+     .05    .10       .25  median   .75    .90     .95
+   -1.36  -0.85     -0.42    0.03  0.40   0.88    1.14
+                                                      
+   range     sd     vcoef     mad   IQR   skew    kurt
+    4.50   0.72  8.21e+15    0.63  0.82  -0.39    0.69
+                                                      
+lowest : -2.70, -1.65, -1.58, -1.56, -1.53
+highest: 1.32, 1.35, 1.39, 1.41, 1.80
+
+' 95%-CI (classic)</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Cysteine-resid-1stpass" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-resid-1stpass-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;58: Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>In comparison to the previous outlier analysis as seen <a href="https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link">here</a>, the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution.</p>
+<p><a href="#fig-Cysteine-outliers" class="quarto-xref">Figure&nbsp;59</a> shows a quantile-quantile plot where the quantiles of the model’s residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs).</p>
+<p>For the rest of the figures below (i.e.&nbsp;for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e.&nbsp;horizontal lines in plot).</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-outliers" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-outliers-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;59: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div id="hmscmcuyur" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#hmscmcuyur table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#hmscmcuyur thead, #hmscmcuyur tbody, #hmscmcuyur tfoot, #hmscmcuyur tr, #hmscmcuyur td, #hmscmcuyur th {
+  border-style: none;
+}
+
+#hmscmcuyur p {
+  margin: 0;
+  padding: 0;
+}
+
+#hmscmcuyur .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: oblique;
+  background-color: #CDC1C5;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#hmscmcuyur .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #CDC1C5;
+  border-bottom-width: 0;
+}
+
+#hmscmcuyur .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #CDC1C5;
+  border-top-width: 0;
+}
+
+#hmscmcuyur .gt_heading {
+  background-color: #CDC1C5;
+  text-align: center;
+  border-bottom-color: #CDC1C5;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_col_heading {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#hmscmcuyur .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#hmscmcuyur .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#hmscmcuyur .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#hmscmcuyur .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#hmscmcuyur .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#hmscmcuyur .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#hmscmcuyur .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#hmscmcuyur .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#hmscmcuyur .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#hmscmcuyur .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#hmscmcuyur .gt_stub {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hmscmcuyur .gt_stub_row_group {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#hmscmcuyur .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#hmscmcuyur .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#hmscmcuyur .gt_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hmscmcuyur .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#hmscmcuyur .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_grand_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hmscmcuyur .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#hmscmcuyur .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_footnotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hmscmcuyur .gt_sourcenotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#hmscmcuyur .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#hmscmcuyur .gt_left {
+  text-align: left;
+}
+
+#hmscmcuyur .gt_center {
+  text-align: center;
+}
+
+#hmscmcuyur .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#hmscmcuyur .gt_font_normal {
+  font-weight: normal;
+}
+
+#hmscmcuyur .gt_font_bold {
+  font-weight: bold;
+}
+
+#hmscmcuyur .gt_font_italic {
+  font-style: italic;
+}
+
+#hmscmcuyur .gt_super {
+  font-size: 65%;
+}
+
+#hmscmcuyur .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#hmscmcuyur .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#hmscmcuyur .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#hmscmcuyur .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#hmscmcuyur .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#hmscmcuyur .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#hmscmcuyur .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_heading">
+<th colspan="2" class="gt_heading gt_title gt_font_normal gt_bottom_border"><strong>Outliers</strong></th>
+</tr>
+<tr class="odd gt_col_headings">
+<th id="Subject id<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>1</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">Subject id<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+<th id="Cysteine<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>2</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Cysteine<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span></th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_center" headers="id">2024_7</td>
+<td class="gt_row gt_right" headers="Cysteine" style="color: #FF0000">−2.70</td>
+</tr>
+</tbody><tfoot class="gt_footnotes">
+<tr class="odd">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> Red coloured data points in above QQ plot</td>
+</tr>
+<tr class="even">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span> μmol/g (model residual)</td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="model---2nd-pass-3" class="level2">
+<h2 class="anchored" data-anchor-id="model---2nd-pass-3">Model - 2nd Pass</h2>
+<p>Here the model is refitted to the data excluding the outlier values detected in the previous step.</p>
+<section id="residuals-5" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-5">Residuals</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;60: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;61: Plot of predictions vs model residuals. No obvious patterns can be seen.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-5" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-5">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;62: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-5" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-5">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Cysteine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+bmi
+</td>
+<td style="padding-left:4ex; text-align: right;">
+23.25
+</td>
+<td style="padding-left:4ex; text-align: right;">
+30.3
+</td>
+<td style="padding-left:4ex; text-align: right;">
+7.05
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.32730
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.19520
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.058600
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.71330
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+35.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+52.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+17.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.11730
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.08842
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.057530
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.29220
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+resistance_activity
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+42.5
+</td>
+<td style="padding-left:4ex; text-align: right;">
+42.50
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.29170
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.14650
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.002049
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.58130
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Thyroidism:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.07755
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.19310
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.459400
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.30430
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Other:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+3.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.15410
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.21360
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.268300
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.57640
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Blood:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+4.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.05171
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.24080
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.424500
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.52790
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Heart:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+5.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.16380
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.30430
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.765500
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.43800
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Stomach:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+6.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.12680
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.28320
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.686700
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.43310
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Depression:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+7.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.71560
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.37190
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-1.451000
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.01981
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+chronic_disease_v3 — Pain:None
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1.00
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+8.0
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.22440
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.43780
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.641200
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1.09000
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;63: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="model---3rd-pass-2" class="level2">
+<h2 class="anchored" data-anchor-id="model---3rd-pass-2">Model - 3rd Pass</h2>
+<p>The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e.&nbsp;10 df should be spent instead of the 16 from the model. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows <a href="https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/">source</a>:</p>
+<ul>
+<li><p>Estimate model performance in the original sample of size n</p></li>
+<li><p>Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample</p></li>
+<li><p>Apply the model obtained in the bootstrap sample to the original sample</p></li>
+<li><p>Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e.&nbsp;overfitting)</p></li>
+<li><p>Repeat the process many times (e.g.&nbsp;300) and average over the repeats to obtain a final estimate of optimism for each measure</p></li>
+<li><p>Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate</p></li>
+</ul>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+2nd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.15
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.21
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.04
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.18
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.03
+</td>
+<td style="padding-left:3ex; text-align: center;">
+278
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.47
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.43
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.52
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.1
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.56
+</td>
+<td style="padding-left:3ex; text-align: center;">
+278
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.31
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.37
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.24
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.13
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.18
+</td>
+<td style="padding-left:3ex; text-align: center;">
+278
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.96
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.96
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.96
+</td>
+<td style="padding-left:3ex; text-align: center;">
+278
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.63
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.37
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.63
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+278
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><p>From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model.</p>
+<p>By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=154   Mean absolute error=0.066   Mean squared error=0.00811
+0.9 Quantile of absolute error=0.174</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;64: Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.</p>
+<p>From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables, bmi, age and resistance_activity can be kept in a new model with less degree of freedom spending i.e.&nbsp;less overfitting the data.</p>
+<p>Hence the model is refitted to the data with these just 3 covariates (Note: Situation might change when more data are collected and the model is refit).</p>
+<p>The model formula is:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.207 - 0.1402*bmi + 0.002925*pmax(bmi - 20.34,0)^3 - 0.006532*pmax(bmi - 24.1,0)^3 + 0.00387*pmax(bmi - 27.82,0)^3 - 0.0002636*pmax(bmi - 36.99,0)^3 + 0.007099*age - 1.257*resistance_activity + resistance_activity*(0.05867*bmi - 0.001282*pmax(bmi - 20.34,0)^3 + 0.003158*pmax(bmi - 24.1,0)^3 - 0.002112*pmax(bmi - 27.82,0)^3 + 0.0002357*pmax(bmi - 36.99,0)^3)</code></pre>
+</div>
+</div>
+<p>The model’s reference values can be seen below in the row named <code>Adjust to</code>:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>                   id    sex age   bmi chronic_disease_flag chronic_disease_v3 meds_flag supplements_flag aerobics_activity resistance_activity  Cysteine
+Low:effect       &lt;NA&gt;   &lt;NA&gt;  35 23.25                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                 0                 0.0  8.819153
+Adjust to       39953 Female  43 25.60                   No               None        No               No                 0                 0.0 14.050352
+High:effect      &lt;NA&gt;   &lt;NA&gt;  52 30.30                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                75                42.5 21.604960
+Low:prediction   1018 Female  11 16.60                   No               None        No               No                 0                 0.0  1.494633
+High:prediction NAKOS   Male  78 46.20                  Yes               Pain       Yes              Yes               720               540.0 82.317026
+Low              1018 Female  11 16.60                   No               None        No               No                 0                 0.0  1.494633
+High            NAKOS   Male  78 46.20                  Yes               Pain       Yes              Yes               720               540.0 82.317026
+
+Values:
+
+id : 1018 10985 1210 1338 162 1960 2024_1 2024_10 2024_12 2024_2 2024_3 2024_5 2046 2299 25821 25983 26849 34006 34734 35010 + 189 others 
+sex : Female Male 
+chronic_disease_flag : No Yes 
+chronic_disease_v3 : None Thyroidism Other Blood Heart Stomach Depression Pain 
+meds_flag : No Yes 
+supplements_flag : No Yes </code></pre>
+</div>
+</div>
+<section id="residuals-6" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-6">Residuals</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;65: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers. Here the algorithm reports outliers due to its parameterization, however these are weak outliers since their deviation from the straight line is not large.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;66: Plot of predictions vs model residuals. No obvious patterns can be seen. Since the model covariates are binary, there are four unique predictions, one for each combination of sex and supplements_flag category.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-6" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-6">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;67: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-6" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-6">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Cysteine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+bmi
+</td>
+<td style="padding-left:4ex; text-align: right;">
+23.25
+</td>
+<td style="padding-left:4ex; text-align: right;">
+30.3
+</td>
+<td style="padding-left:4ex; text-align: right;">
+7.05
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.3326
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.19120
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.04525
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.7104
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+35.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+52.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+17.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1207
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.07642
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.03035
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2717
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+resistance_activity
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.00
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+42.5
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+42.50
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.2620
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.14040
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.01559
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.5395
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;68: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="partial-dependence-plots-4" class="level3">
+<h3 class="anchored" data-anchor-id="partial-dependence-plots-4">Partial Dependence Plots</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-partial-effects-plot1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-partial-effects-plot1-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;69: Nonlinear effect of bmi. Cysteine concentration levels can be seen to decrease until the age of 24 and thereafter steadily but slowly increase with increasing bmi.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-partial-effects-plot2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-partial-effects-plot2-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;70: Effect of age. Age is seen to increase the levels of Cysteine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-partial-effects-plot3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-partial-effects-plot3-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;71: Effect of resistance_activity. Resistance training is seen to increase the levels of Cysteine concentration, especially when moving from no training at all to increasing training durations per week. The pace of increase is slow.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-var-partial-effects-plot4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-var-partial-effects-plot4-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;72: Simultaneous effects of bmi and resistance_activity. Cysteine concentration levels are seen to increase with the increase of bmi and the duration of resistance training, particularly beyond the bmi threshold of 35 <span class="math inline">\(kg/m^2\)</span>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-calibration-3" class="level3">
+<h3 class="anchored" data-anchor-id="validation-calibration-3">Validation &amp; Calibration</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+3rd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.11
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.15
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.05
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.1
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.01
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.48
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.46
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.52
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.06
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.55
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.28
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.31
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.23
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.08
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.2
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.64
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.64
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.64
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.75
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.25
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.75
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+300
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><p>We note also that the successful number of resamples is 300 (i.e.&nbsp;the number of bootstrap samples that we have chosen to perform the validation). In contrast, the 2nd pass model did not use all of the 300 resamples due to divergence or singularity issues which occurred in 22 samples, and thus left only 278 resamples to use for the validation. These divergence issues were due to reasons such as missing values, categories of the chronic_disease_v3 variable with a low frequency and the complexity of the model.<br>
+In addition this 3rd pass model has used only 154 individuals from the current pool of 308 due the many zero or non-detection cases in the data.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=154   Mean absolute error=0.07   Mean squared error=0.00704
+0.9 Quantile of absolute error=0.127</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Cysteine-refit2-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Cysteine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Cysteine-refit2-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Cysteine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;73: Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the right side, but not on the middle and left parts of the comparison. On the middle part there is some overestimation while on the left there is underestimation of the true values. This is perhaps due to the currently small sample size of 154 individuals upon the models have been built.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dynamic-reference-intervals-3" class="level3">
+<h3 class="anchored" data-anchor-id="dynamic-reference-intervals-3">Dynamic Reference Intervals</h3>
+<p>The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div data-pagedtable="false">
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["lower95RI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["upper95RI"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["bmi"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["age"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["resistance_activity"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"9.99","3":"18.31","4":"21.93","5":"48","6":"120"},{"1":"2","2":"10.43","3":"16.69","4":"24.44","5":"41","6":"30"},{"1":"3","2":"6.24","3":"13.73","4":"20.71","5":"9","6":"30"},{"1":"4","2":"2.94","3":"17.00","4":"16.33","5":"9","6":"30"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p>The RI for Cysteine from Mayo Clinic Laboratories for ages above 18 years is 12 to 98 μmol/g of creatinine.</p>
+</section>
+</section>
 </section>
 <section id="taurine" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Taurine</h1>
