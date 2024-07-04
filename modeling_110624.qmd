@@ -1740,7 +1740,7 @@ plot(Valine_mod_refit_cal)
 
 ### Dynamic Reference Intervals 
 
-The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used. 
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 2nd pass model only bmi and resistance_activity make a difference since the rest of the covariates are not used. 
 
 ```{r}
 # options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
@@ -2351,7 +2351,7 @@ plot(Cysteine_mod_refit2_cal)
 
 ### Dynamic Reference Intervals 
 
-The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used. 
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only bmi, age and resistance_activity make a difference since the rest of the covariates are not used. 
 
 ```{r}
 # options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
@@ -2394,11 +2394,11 @@ Non-linearity is evident in covariates `age`, `resistance_activity`, `bmi` and `
 
 To capture non-linearities only interactions amongst these 5 variables are considered in the model.
 
-After different combinations of the covariates were tested in the model, the best model was the one including only aerobics_activity as the single covariate. This model had a global regression p-value of 0.078 (marginally significant). 
+After different combinations of the covariates were tested in the model, the best model was the one including only aerobics_activity as the single covariate. This model had a global regression p-value of `0.078` (marginally significant). 
 
 Thus the 1st pass model formula is:
 
-log(Taurine) ~ log(aerobics_activity+1)
+`log(Taurine) ~ log(aerobics_activity+1)`
 
 Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
 
@@ -2794,7 +2794,7 @@ plot(Taurine_mod_refit_cal)
 
 ### Dynamic Reference Intervals 
 
-The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used. 
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 2nd pass model only age, supplements_flag, aerobics_activity and sex make a difference since the rest of the covariates are not used. 
 
 ```{r}
 # options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
@@ -2811,10 +2811,11 @@ dynRI <- new_dat |>
   }) |>
   select(-data) |>
   inner_join(new_dat |> 
-               select(id, age, supplements_flag, aerobics_activity, sex), by = "id") |>
+               select(id, sex, age, aerobics_activity, supplements_flag) |> 
+               rename(aerobics = aerobics_activity, supplements = supplements_flag), by = "id") |> # shorter names so the output does not sqeeze the age name into a..
   mutate(across(where(is.double), ~ round(., 2)))
 
-dynRI
+dynRI     
 ```
 
 The RI for Taurine from Mayo Clinic Laboratories for ages above 18 years is 24 to 1560 μmol/g of creatinine.
