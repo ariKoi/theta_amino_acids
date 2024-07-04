@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-07-01">
+<meta name="dcterms.date" content="2024-07-04">
 
 <title>Theta Biomarkers - Modeling - Exploratory Data Analysis - Amino Acid Reference Intervals</title>
 <style>
@@ -254,7 +254,20 @@ window.Quarto = {
   <li><a href="#dynamic-reference-intervals-3" id="toc-dynamic-reference-intervals-3" class="nav-link" data-scroll-target="#dynamic-reference-intervals-3">Dynamic Reference Intervals</a></li>
   </ul></li>
   </ul></li>
-  <li><a href="#taurine" id="toc-taurine" class="nav-link" data-scroll-target="#taurine"><span class="header-section-number">5</span> Taurine</a></li>
+  <li><a href="#taurine" id="toc-taurine" class="nav-link" data-scroll-target="#taurine"><span class="header-section-number">5</span> Taurine</a>
+  <ul class="collapse">
+  <li><a href="#model---1st-pass-4" id="toc-model---1st-pass-4" class="nav-link" data-scroll-target="#model---1st-pass-4">Model - 1st Pass</a></li>
+  <li><a href="#outlier-analysis-based-on-model-residuals-4" id="toc-outlier-analysis-based-on-model-residuals-4" class="nav-link" data-scroll-target="#outlier-analysis-based-on-model-residuals-4">Outlier analysis based on model residuals</a></li>
+  <li><a href="#model---2nd-pass-4" id="toc-model---2nd-pass-4" class="nav-link" data-scroll-target="#model---2nd-pass-4">Model - 2nd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-model-refit" id="toc-residuals-model-refit" class="nav-link" data-scroll-target="#residuals-model-refit">Residuals &amp; Model Refit</a></li>
+  <li><a href="#variable-importance-7" id="toc-variable-importance-7" class="nav-link" data-scroll-target="#variable-importance-7">Variable Importance</a></li>
+  <li><a href="#variable-effects-7" id="toc-variable-effects-7" class="nav-link" data-scroll-target="#variable-effects-7">Variable Effects</a></li>
+  <li><a href="#partial-dependence-plots-5" id="toc-partial-dependence-plots-5" class="nav-link" data-scroll-target="#partial-dependence-plots-5">Partial Dependence Plots</a></li>
+  <li><a href="#validation-calibration-4" id="toc-validation-calibration-4" class="nav-link" data-scroll-target="#validation-calibration-4">Validation &amp; Calibration</a></li>
+  <li><a href="#dynamic-reference-intervals-4" id="toc-dynamic-reference-intervals-4" class="nav-link" data-scroll-target="#dynamic-reference-intervals-4">Dynamic Reference Intervals</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#isoleucine" id="toc-isoleucine" class="nav-link" data-scroll-target="#isoleucine"><span class="header-section-number">6</span> Isoleucine</a></li>
   <li><a href="#leucine" id="toc-leucine" class="nav-link" data-scroll-target="#leucine"><span class="header-section-number">7</span> Leucine</a></li>
   <li><a href="#glutamine" id="toc-glutamine" class="nav-link" data-scroll-target="#glutamine"><span class="header-section-number">8</span> Glutamine</a></li>
@@ -281,7 +294,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 1, 2024</p>
+      <p class="date">July 4, 2024</p>
     </div>
   </div>
   
@@ -325,7 +338,7 @@ Figure&nbsp;1: Spearman’s test for assessing non-linear relationships with the
 </div>
 <p>Non-linearity is evident in covariates <code>sex</code>, <code>aerobics_activity</code>, <code>age</code> (smaller <span class="math inline">\(\rho^2\)</span>) and <code>chronic_disease_v3</code> (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign).</p>
 <p>From the <a href="https://drive.google.com/file/d/1CEJBCJwiNr1KfhRK-2qHiGLcdepH1fe6/view?usp=drive_link">data processing and description file</a> implemented previously, <code>aerobics_activity</code> does not have many distinct values, has a low Info metric i.e.&nbsp;it does not meet criteria for a continuous variable. In addition due to the many zeroes it’s distribution is split in half (this hints to a subgroup analysis that will be executed later). As such using a polynomial term or a spline function in order to model its non-linear association with the amino acid concentration would not be appropriate. <code>Age</code> does not have continuity issues, however its adjusted <span class="math inline">\(\rho^2\)</span> value as seen in the above Spearman <span class="math inline">\(\rho^2\)</span> plots is not high enough to justify a spline approach. Hence to capture non-linearities only interactions amongst these 4 variables will be considered in the model. Specifically, the model formula will contain the following terms or associations:</p>
-<p>log(Glycine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1)</p>
+<p><code>log(Glycine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1)</code></p>
 <p>Where the <code>:</code> symbol denotes the interaction between two variables. Once the model is built and the coefficients are estimated, the model formula can be seen below.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
@@ -2209,7 +2222,7 @@ Figure&nbsp;31: Spearman’s test for assessing non-linear relationships with th
 </div>
 <p>Non-linearity is evident in covariates <code>sex</code>, <code>aerobics_activity</code>, <code>age</code> (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign), <code>bmi</code> (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign) and <code>chronic_disease_v3</code> (<span class="math inline">\(\rho^2\)</span> with opposite sign).</p>
 <p>To capture non-linearities only interactions amongst these 4 variables will be considered in the model. Specifically, the model formula will contain the following terms or associations:</p>
-<p>log(Alanine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1) + sex:bmi + bmi:log(aerobics_activity+1) + age:bmi + bmi:chronic_disease_v3 + bmi:supplements_flag + age:supplements_flag + sex:supplements_flag + sex:log(aerobics_activity+1)</p>
+<p><code>log(Alanine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1) + sex:bmi + bmi:log(aerobics_activity+1) + age:bmi + bmi:chronic_disease_v3 + bmi:supplements_flag + age:supplements_flag + sex:supplements_flag + sex:log(aerobics_activity+1)</code></p>
 <p>Where the <code>:</code> symbol denotes the interaction between two variables.</p>
 <p>Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken.</p>
 </section>
@@ -3791,13 +3804,13 @@ Figure&nbsp;46: Spearman’s test for assessing non-linear relationships with th
 </div>
 </div>
 </div>
-<p>Non-linearity is evident in covariates <code>sex</code>, <code>resistance_activity</code>, <code>bmi</code> and <code>chronic_disease_v3</code>. However their <span class="math inline">\(\rho^2\)</span> values are very small, hence non-linearity strength is very low..</p>
+<p>Non-linearity is evident in covariates <code>sex</code>, <code>resistance_activity</code>, <code>bmi</code> and <code>chronic_disease_v3</code>. However their <span class="math inline">\(\rho^2\)</span> values are very small, hence non-linearity strength is very low.</p>
 <p>To capture non-linearities only interactions amongst these 4 variables are considered in the model. Specifically, the model formula contains the following terms or associations:</p>
 <p>log(Valine) ~ sex + age + bmi + chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + sex:bmi + sex:log(resistance_activity+1) + log(resistance_activity+1):chronic_disease_v3 + log(resistance_activity+1):bmi</p>
 <p>Where the <code>:</code> symbol denotes the interaction between two variables.</p>
 <p>Even though this model uses information from all meta data covariates, and is in addition quite complex due to the modeled interactions, the global significance of the model is very small i.e.&nbsp;global p-value based on the Likelihood Ratio Test is 0.62, well above the 0.05 typical threshold. As a result, and after different combinations of the covariates were tested in the model, the best model was the one including only bmi and resistance_activity as covariates. This model had a global regression p-value of 0.0542 (marginally significant). To note, this statistic is further improved with the 2nd pass model below i.e.&nbsp;p-value of 0.0175</p>
 <p>Thus the 1st pass model formula is:</p>
-<p>log(Valine) ~ bmi + log(resistance_activity+1)</p>
+<p><code>log(Valine) ~ bmi + log(resistance_activity+1)</code></p>
 <p>Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken.</p>
 </section>
 <section id="outlier-analysis-based-on-model-residuals-2" class="level2">
@@ -4768,7 +4781,7 @@ n=225   Mean absolute error=0.015   Mean squared error=3e-04
 <img src="modeling_110624_files/figure-html/fig-Valine-refit-cal-1.png" class="img-fluid figure-img" width="960">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Valine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;56: Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias. The larger deviations occur to the left of the plot which means that the model has some tendency to underestimate to the true Valine concentration value i.e.&nbsp;if the model predicts 23.33 μmol/g, then actual is 23.33*exp(mae=0.015) = 23.68 μmol/g
+Figure&nbsp;56: Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias. The larger deviations occur to the left of the plot which means that the model has some tendency to underestimate the true Valine concentration value i.e.&nbsp;if the model predicts 23.33 μmol/g, then actual is 23.33*exp(mae=0.015) = 23.68 μmol/g
 </figcaption>
 </figure>
 </div>
@@ -4812,7 +4825,7 @@ Figure&nbsp;57: Spearman’s test for assessing non-linear relationships with th
 </div>
 <p>Non-linearity evident in bmi, resistance_activity (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign), chronic_disease_v3 (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign). Most rho values are relatively small though with bmi being the exception</p>
 <p>To capture non linearities interactions amongst these 3 variables will be considered, as well as splines for bmi. Also age will be included as it has some linearity association:</p>
-<p>log(Cysteine) ~ rcs(bmi, 4) + age + chronic_disease_v3 + log(resistance_activity+1) + log(resistance_activity+1):rcs(bmi, 4)</p>
+<p><code>log(Cysteine) ~ rcs(bmi, 4) + age + chronic_disease_v3 + log(resistance_activity+1) + log(resistance_activity+1):rcs(bmi, 4)</code></p>
 <p>Where the <code>:</code> symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 4 knots.</p>
 <p>Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken.</p>
 </section>
@@ -6345,6 +6358,1599 @@ Figure&nbsp;73: Calibration plot for 3rd pass model. Deviation from the diagonal
 </section>
 <section id="taurine" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Taurine</h1>
+<section id="model---1st-pass-4" class="level2">
+<h2 class="anchored" data-anchor-id="model---1st-pass-4">Model - 1st Pass</h2>
+<p>Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e.&nbsp;with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-nonlinearities" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-nonlinearities-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;74: Spearman’s test for assessing non-linear relationships with the response. The further away from 0 the adjusted <span class="math inline">\(\rho^2\)</span> score is, the higher the degree of non-linearity for that covariate.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Linearity is evident in <code>aerobics_activity</code> (relevant plot not shown). Non-linearity is evident in covariates <code>age</code>, <code>resistance_activity</code>, <code>bmi</code> and <code>chronic_disease_v3</code>. However their <span class="math inline">\(\rho^2\)</span> values are very small, hence non-linearity strength is very low.</p>
+<p>To capture non-linearities only interactions amongst these 5 variables are considered in the model.</p>
+<p>After different combinations of the covariates were tested in the model, the best model was the one including only aerobics_activity as the single covariate. This model had a global regression p-value of 0.078 (marginally significant).</p>
+<p>Thus the 1st pass model formula is:</p>
+<p>log(Taurine) ~ log(aerobics_activity+1)</p>
+<p>Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken.</p>
+</section>
+<section id="outlier-analysis-based-on-model-residuals-4" class="level2">
+<h2 class="anchored" data-anchor-id="outlier-analysis-based-on-model-residuals-4">Outlier analysis based on model residuals</h2>
+<p>When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e.&nbsp;difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can’t be explained well by the model (i.e.&nbsp;missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. This is also appropriate in terms of developing a model that will be used for reference interval construction i.e.&nbsp;cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>------------------------------------------------------------------------------------------------------------------------------------------------------------------ 
+Residual Distribution - Taurine Model :
+  Concentration per Creatinine gramm
+
+
+  length       n       NAs  unique    0s   mean  meanCI'
+     299     299         0     = n     0   0.00   -0.12
+          100.0%      0.0%          0.0%           0.12
+                                                       
+     .05     .10       .25  median   .75    .90     .95
+   -1.82   -1.28     -0.56    0.03  0.61   1.36    1.85
+                                                       
+   range      sd     vcoef     mad   IQR   skew    kurt
+    7.07    1.07  5.01e+15    0.87  1.17  -0.15    0.87
+                                                       
+lowest : -4.05, -3.17, -3.04, -2.58, -2.51
+highest: 2.37, 2.58, 2.60, 2.76, 3.02
+
+' 95%-CI (classic)</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Taurine-resid-1stpass" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-resid-1stpass-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;75: Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>In comparison to the previous outlier analysis as seen <a href="https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link">here</a>, the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution.</p>
+<p><a href="#fig-Taurine-outliers" class="quarto-xref">Figure&nbsp;76</a> shows a quantile-quantile plot where the quantiles of the model’s residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs).</p>
+<p>For the rest of the figures below (i.e.&nbsp;for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e.&nbsp;horizontal lines in plot).</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-outliers" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-outliers-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;76: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div id="sholnntnrc" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#sholnntnrc table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#sholnntnrc thead, #sholnntnrc tbody, #sholnntnrc tfoot, #sholnntnrc tr, #sholnntnrc td, #sholnntnrc th {
+  border-style: none;
+}
+
+#sholnntnrc p {
+  margin: 0;
+  padding: 0;
+}
+
+#sholnntnrc .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: oblique;
+  background-color: #CDC1C5;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#sholnntnrc .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #CDC1C5;
+  border-bottom-width: 0;
+}
+
+#sholnntnrc .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #CDC1C5;
+  border-top-width: 0;
+}
+
+#sholnntnrc .gt_heading {
+  background-color: #CDC1C5;
+  text-align: center;
+  border-bottom-color: #CDC1C5;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_col_heading {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#sholnntnrc .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#sholnntnrc .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#sholnntnrc .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#sholnntnrc .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#sholnntnrc .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#sholnntnrc .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#sholnntnrc .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#sholnntnrc .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#sholnntnrc .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#sholnntnrc .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#sholnntnrc .gt_stub {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sholnntnrc .gt_stub_row_group {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#sholnntnrc .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#sholnntnrc .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#sholnntnrc .gt_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sholnntnrc .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#sholnntnrc .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_grand_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sholnntnrc .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#sholnntnrc .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_footnotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sholnntnrc .gt_sourcenotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#sholnntnrc .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sholnntnrc .gt_left {
+  text-align: left;
+}
+
+#sholnntnrc .gt_center {
+  text-align: center;
+}
+
+#sholnntnrc .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#sholnntnrc .gt_font_normal {
+  font-weight: normal;
+}
+
+#sholnntnrc .gt_font_bold {
+  font-weight: bold;
+}
+
+#sholnntnrc .gt_font_italic {
+  font-style: italic;
+}
+
+#sholnntnrc .gt_super {
+  font-size: 65%;
+}
+
+#sholnntnrc .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#sholnntnrc .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#sholnntnrc .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#sholnntnrc .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#sholnntnrc .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#sholnntnrc .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#sholnntnrc .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_heading">
+<th colspan="2" class="gt_heading gt_title gt_font_normal gt_bottom_border"><strong>Outliers</strong></th>
+</tr>
+<tr class="odd gt_col_headings">
+<th id="Subject id<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>1</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">Subject id<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+<th id="Taurine<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>2</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Taurine<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span></th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_center" headers="id">40691</td>
+<td class="gt_row gt_right" headers="Taurine" style="color: #FF0000">−3.17</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_center" headers="id">40782</td>
+<td class="gt_row gt_right" headers="Taurine" style="color: #FF0000">−4.05</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_center" headers="id">680</td>
+<td class="gt_row gt_right" headers="Taurine" style="color: #FF0000">−3.04</td>
+</tr>
+</tbody><tfoot class="gt_footnotes">
+<tr class="odd">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> Red coloured data points in above QQ plot</td>
+</tr>
+<tr class="even">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span> μmol/g (model residual)</td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="model---2nd-pass-4" class="level2">
+<h2 class="anchored" data-anchor-id="model---2nd-pass-4">Model - 2nd Pass</h2>
+<p>Here the model is refitted to the data excluding the outlier values detected in the previous step.</p>
+<p>Utilizing the same model formula as in the 1st pass model i.e.&nbsp;a model with only aerobics_activity as a covariate did not result into global regression significance. As a result a new model formula was searched with the following being the best found:</p>
+<p><code>log(Taurine) ~ rcs(age,3) + supplements_flag + rcs(age,3):supplements_flag + log(aerobics_activity+1) + supplements_flag:log(aerobics_activity+1) + sex + sex:supplements_flag</code></p>
+<p>Where <code>:</code> denotes an interaction term and <code>rcs</code> a restricted cubic spline to capture non-linear association. However this model, even after an extensive search using a variety of covariate combinations, still does not have global regression significance with a p-value close to <code>0.14</code>. Since this is currently the only option, this model is kept as the 2nd pass model (it is hoped that with more data global regression significance can be achieved).</p>
+<section id="residuals-model-refit" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-model-refit">Residuals &amp; Model Refit</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;77: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are typically deemed weak outliers (the strong ones detected by the 1st pass model have been removed). An exception for the Taurine case is that there’s still is a strong outlier present, which can be seen on the right side of the plot. This data point is further removed from the data and the 2nd pass model is refit again.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>As an exception to previously analysed amino acids, here there was an additional strong outlier that was removed from the data. This corresponds to the subject id <code>34734</code> as shown in the table below.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div id="wvugznwges" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#wvugznwges table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#wvugznwges thead, #wvugznwges tbody, #wvugznwges tfoot, #wvugznwges tr, #wvugznwges td, #wvugznwges th {
+  border-style: none;
+}
+
+#wvugznwges p {
+  margin: 0;
+  padding: 0;
+}
+
+#wvugznwges .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: oblique;
+  background-color: #CDC1C5;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#wvugznwges .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#wvugznwges .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #CDC1C5;
+  border-bottom-width: 0;
+}
+
+#wvugznwges .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #CDC1C5;
+  border-top-width: 0;
+}
+
+#wvugznwges .gt_heading {
+  background-color: #CDC1C5;
+  text-align: center;
+  border-bottom-color: #CDC1C5;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wvugznwges .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wvugznwges .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wvugznwges .gt_col_heading {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#wvugznwges .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#wvugznwges .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#wvugznwges .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#wvugznwges .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#wvugznwges .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#wvugznwges .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#wvugznwges .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#wvugznwges .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#wvugznwges .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#wvugznwges .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#wvugznwges .gt_stub {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wvugznwges .gt_stub_row_group {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#wvugznwges .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#wvugznwges .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#wvugznwges .gt_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wvugznwges .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#wvugznwges .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#wvugznwges .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wvugznwges .gt_grand_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wvugznwges .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#wvugznwges .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wvugznwges .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#wvugznwges .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wvugznwges .gt_footnotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wvugznwges .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wvugznwges .gt_sourcenotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wvugznwges .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wvugznwges .gt_left {
+  text-align: left;
+}
+
+#wvugznwges .gt_center {
+  text-align: center;
+}
+
+#wvugznwges .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#wvugznwges .gt_font_normal {
+  font-weight: normal;
+}
+
+#wvugznwges .gt_font_bold {
+  font-weight: bold;
+}
+
+#wvugznwges .gt_font_italic {
+  font-style: italic;
+}
+
+#wvugznwges .gt_super {
+  font-size: 65%;
+}
+
+#wvugznwges .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#wvugznwges .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#wvugznwges .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#wvugznwges .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#wvugznwges .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#wvugznwges .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#wvugznwges .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_heading">
+<th colspan="2" class="gt_heading gt_title gt_font_normal gt_bottom_border"><strong>Outliers</strong></th>
+</tr>
+<tr class="odd gt_col_headings">
+<th id="Subject id<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>1</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">Subject id<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+<th id="Taurine<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>2</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Taurine<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span></th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_center" headers="id">571</td>
+<td class="gt_row gt_right" headers="Taurine" style="color: #FF0000">−2.61</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_center" headers="id">34734</td>
+<td class="gt_row gt_right" headers="Taurine" style="color: #FF0000">3.39</td>
+</tr>
+</tbody><tfoot class="gt_footnotes">
+<tr class="even">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> Red coloured data points in above QQ plot</td>
+</tr>
+<tr class="odd">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span> μmol/g (model residual)</td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>The 2nd pass model was then refit one more time (without id <code>34734</code>) using the same last model formula:</p>
+<p><code>log(Taurine) ~ rcs(age,3) + supplements_flag + rcs(age,3):supplements_flag + log(aerobics_activity+1) + supplements_flag:log(aerobics_activity+1) + sex + sex:supplements_flag</code></p>
+<p>This version of the model resulted in marginal globla regression significance with a p-value of <code>0.06</code> and the updated residual qq plot below.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-resid2-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-resid2-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-resid2-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-resid2-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;78: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are typically deemed weak outliers (the strong ones detected by the 1st and 2nd pass models have been removed).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;79: Plot of predictions vs model residuals. No obvious patterns can be seen.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-7" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-7">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;80: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-7" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-7">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Taurine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+34
+</td>
+<td style="padding-left:4ex; text-align: right;">
+53
+</td>
+<td style="padding-left:4ex; text-align: right;">
+19
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.08265
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1115
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.13700
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.30230
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+aerobics_activity
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+60
+</td>
+<td style="padding-left:4ex; text-align: right;">
+60
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.09023
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1387
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.18300
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.36350
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+supplements_flag — Yes:No
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.39710
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2221
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.04059
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.83470
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+sex — Male:Female
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+2
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.22530
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.1606
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.54160
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.09108
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;81: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>For Taurine, there’s no 3rd pass model due to the difficulties in establishing a significant model and the fact that 10 degrees of freedom are spent by the model from an empirical max of 16.</p>
+<p>The model formula is:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 7.205 - 0.02189* age + 2.927e - 05*pmax(age - 26.1,0)^3 - 5.676e - 05*pmax(age - 43,0)^3 + 2.749e - 05*pmax(age - 61,0)^3 + 0.387*(supplements_flag==Yes) + 0.02195*aerobics_activity - 0.2253*(sex==Male) + (supplements_flag==Yes)*(0.003115* age - 2.567e - 05*pmax(age - 26.1,0)^3 + 4.977e - 05*pmax(age - 43,0)^3 - 2.41e - 05*pmax(age - 61,0)^3) - 0.1019*(supplements_flag==Yes)*aerobics_activity + 0.5623*(supplements_flag==Yes)*(sex==Male)</code></pre>
+</div>
+</div>
+<p>The model’s reference values can be seen below in the row named <code>Adjust to</code>:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>                   id    sex age  bmi chronic_disease_flag chronic_disease_v3 meds_flag supplements_flag aerobics_activity resistance_activity     Taurine
+Low:effect       &lt;NA&gt;   &lt;NA&gt;  34 22.8                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                 0                   0   437.45744
+Adjust to       24486 Female  43 25.3                   No               None        No               No                 0                   0   773.26965
+High:effect      &lt;NA&gt;   &lt;NA&gt;  53 29.1                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                60                 540  1386.79205
+Low:prediction   1018 Female  11 16.6                   No               None        No               No                 0                   0    58.61601
+High:prediction NAKOS   Male  80 46.2                  Yes               Pain       Yes              Yes               720                 540 13049.87097
+Low              1018 Female  11 16.6                   No               None        No               No                 0                   0    58.61601
+High            NAKOS   Male  80 46.2                  Yes               Pain       Yes              Yes               720                 540 13049.87097
+
+Values:
+
+id : 1018 10985 1210 1219 1326 1338 1378 162 1623 1960 2024_1 2024_11 2024_12 2024_2 2024_3 2024_4 2024_5 2024_6 2024_7 2024_8 + 284 others 
+sex : Female Male 
+chronic_disease_flag : No Yes 
+chronic_disease_v3 : None Thyroidism Other Blood Heart Stomach Depression Pain 
+meds_flag : No Yes 
+supplements_flag : No Yes </code></pre>
+</div>
+</div>
+</section>
+<section id="partial-dependence-plots-5" class="level3">
+<h3 class="anchored" data-anchor-id="partial-dependence-plots-5">Partial Dependence Plots</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot1-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;82: Effect of age. U-shaped average effect on Taurine concentration. Young and old subjects exhibit an increase in Taurine concentration with the pace of increase being stronger for older subjects.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot2-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;83: Effect of aerobics training. Spending more time on aerobics training seems to increase levels of Taurine concentration, but at a relatively slow pace. The effect is more prominent from no resistance training to about 3 hours per week i.e.&nbsp;180/60
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot3-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;84: Effect of supplements intake. Taking supplenents increase the Taurine concentration but the difference from non-takers is not significant.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot4-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;85: Effect of sex. No difference between males and females.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot5" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot5-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;86: Simultaneous effects of supplement intake and age. Individuals who are either old and do not take any supplements or who are young and do take supplements have higher levels of Taurine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot6" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot6-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot6-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot6-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;87: Simultaneous effects of supplement intake and sex. Males who do take supplements have higher levels of Taurine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-var-partial-effects-plot7" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-var-partial-effects-plot7-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-var-partial-effects-plot7-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-var-partial-effects-plot7-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;88: Simultaneous effects of supplement intake and aerobics_activity. Individuals who do not follow an aerobic activity but take supplements tend to have higher levels of Taurine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-calibration-4" class="level3">
+<h3 class="anchored" data-anchor-id="validation-calibration-4">Validation &amp; Calibration</h3>
+<p>To assess model performance, a validation and calibration analysis is conducted below as with other amino acids. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows <a href="https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/">source</a>:</p>
+<ul>
+<li><p>Estimate model performance in the original sample of size n</p></li>
+<li><p>Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample</p></li>
+<li><p>Apply the model obtained in the bootstrap sample to the original sample</p></li>
+<li><p>Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e.&nbsp;overfitting)</p></li>
+<li><p>Repeat the process many times (e.g.&nbsp;300) and average over the repeats to obtain a final estimate of optimism for each measure</p></li>
+<li><p>Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate</p></li>
+</ul>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+2nd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.06
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.1
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.02
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.08
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.02
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.88
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.84
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.92
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.08
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.96
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.27
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.33
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.22
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.12
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.15
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+2.28
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-2.28
+</td>
+<td style="padding-left:3ex; text-align: center;">
+2.28
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.65
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.35
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.65
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+300
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=241   Mean absolute error=0.059   Mean squared error=0.00485
+0.9 Quantile of absolute error=0.101</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Taurine-refit-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Taurine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Taurine-refit-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Taurine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;89: Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias. The larger deviations occur to the right of the plot which means that the model has some tendency to overestimate the true Taurine concentration value i.e.&nbsp;if the model predicts exp(7) = 1000 μmol/g, then actual is 1000*exp(mae=-0.059) = 943 μmol/g ~ exp(6.8)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dynamic-reference-intervals-4" class="level3">
+<h3 class="anchored" data-anchor-id="dynamic-reference-intervals-4">Dynamic Reference Intervals</h3>
+<p>The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only sex and supplements_flag make a difference since the rest of the covariates are not used.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div data-pagedtable="false">
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["lower95RI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["upper95RI"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["age"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["supplements_flag"],"name":[5],"type":["chr"],"align":["left"]},{"label":["aerobics_activity"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["sex"],"name":[7],"type":["chr"],"align":["left"]}],"data":[{"1":"1","2":"564.55","3":"1399.87","4":"48","5":"Yes","6":"30","7":"Male"},{"1":"2","2":"508.02","3":"980.77","4":"41","5":"Yes","6":"30","7":"Female"},{"1":"3","2":"634.54","3":"2375.96","4":"9","5":"No","6":"120","7":"Female"},{"1":"4","2":"634.54","3":"2375.96","4":"9","5":"No","6":"120","7":"Female"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p>The RI for Taurine from Mayo Clinic Laboratories for ages above 18 years is 24 to 1560 μmol/g of creatinine.</p>
+</section>
+</section>
 </section>
 <section id="isoleucine" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Isoleucine</h1>
