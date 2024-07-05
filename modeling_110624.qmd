@@ -32,7 +32,7 @@ fontsize: 15px
 ---
 
 ```{r}
-load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")         
+load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")          
 # source of object and function definitions are in file:
 # /Users/aristidiskoitsanos/Desktop/ari/metabolomics/biomic_aminoAcids_1.Rmd
 ```
@@ -47,7 +47,7 @@ library(rms) # maskings
 library(referenceIntervals)
 library(extremevalues)
 library(gt) # masked from ‘package:Hmisc’: html
-library(kableExtra) # masked from ‘package:dplyr’: group_rows      
+library(kableExtra) # masked from ‘package:dplyr’: group_rows       
 ```
 
 Data source: [Ref ranges - AAU file](https://docs.google.com/spreadsheets/d/1I5IUbS86slfxIObDiZYoIhut9WrKXKpE/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true)
@@ -436,7 +436,7 @@ The data contains responses from 300 individuals, however the model uses **209**
 
 ## Model - 3rd Pass
 
-The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
 
 * Estimate model performance in the original sample of size n 
 
@@ -1091,7 +1091,7 @@ plot(s_Alanine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decr
 
 ## Model - 3rd Pass
 
-The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+The 2nd pass model uses too many degrees of freedom in relation to the size of the data. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
 
 * Estimate model performance in the original sample of size n 
 
@@ -2018,7 +2018,7 @@ plot(s_Cysteine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/dec
 
 ## Model - 3rd Pass
 
-The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e. 10 df should be spent instead of the 16 from the model. This can be see by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e. 10 df should be spent instead of the 16 from the model. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
 
 * Estimate model performance in the original sample of size n 
 
@@ -2342,7 +2342,7 @@ In addition this 3rd pass model has used only 154 individuals from the current p
 
 ```{r}
 #| label: fig-Cysteine-refit2-cal
-#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the right side, but not on the middle and left parts of the comparison. On the middle part there is some overestimation while on the left there is underestimation of the true values. This is perhaps due to the currently small sample size of 154 individuals upon the models have been built." 
+#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the right side, but not on the middle and left parts of the comparison. On the middle part there is some overestimation while on the left there is underestimation of the true values. This is perhaps due to the currently small sample size of 154 individuals upon which the models have been built." 
 #| fig-width: 10
  
 thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
@@ -2811,18 +2811,646 @@ dynRI <- new_dat |>
   }) |>
   select(-data) |>
   inner_join(new_dat |> 
-               select(id, sex, age, aerobics_activity, supplements_flag) |> 
-               rename(aerobics = aerobics_activity, supplements = supplements_flag), by = "id") |> # shorter names so the output does not sqeeze the age name into a..
+               select(id, age, supplements_flag, aerobics_activity, sex), by = "id") |>
   mutate(across(where(is.double), ~ round(., 2)))
 
-dynRI     
+dynRI
 ```
 
 The RI for Taurine from Mayo Clinic Laboratories for ages above 18 years is 24 to 1560 μmol/g of creatinine.
 
 # Isoleucine
 
+## Model - 1st Pass
 
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Isoleucine-nonlinearities 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Isoleucine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datIsoleucine, p = 2, na.action = na.omit))
+abline(v = c(-0.01/2, 0.01/3), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Non-linearity evident in chronic_disease_v3, age, sex, bmi and aerobics_activity (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
+
+To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0487`) contained the following terms: 
+
+`log(Isoleucine) ~ sex + rcs(age,3) + bmi + chronic_disease_v3 + sex:rcs(age,3)`
+
+Where the `:` symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 3 knots. 
+
+Since this is a 1st pass for the model, with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
+
+## Outlier analysis based on model residuals
+
+When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e. difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can't be explained well by the model (i.e. missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. 
+This is also appropriate in terms of developing a model that will be used for reference interval construction i.e. cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection. 
+
+```{r}
+#| label: fig-Isoleucine-resid-1stpass 
+#| fig-cap: "Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval." 
+
+thematic::thematic_off()      
+DescTools::Desc(resid_Isoleucine_mod, plotit = TRUE, digits = 2, main = "Residual Distribution - Isoleucine Model")
+```
+
+In comparison to the previous outlier analysis as seen [here](https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link), the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution. 
+
+@fig-Isoleucine-outliers shows a quantile-quantile plot where the quantiles of the model's residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs). 
+
+For the rest of the figures below (i.e. for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e. horizontal lines in plot). 
+
+```{r}
+#| label: fig-Isoleucine-outliers 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers." 
+
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Isoleucine_mod$outliersPlot
+```
+
+```{r}
+gt(out_resid_Isoleucine_mod$outliers) |> 
+  tab_header(
+    title = md("**Outliers**")
+  ) |>  
+  fmt_number(columns = Isoleucine) |> 
+  tab_footnote(
+    footnote = "Red coloured data points in above QQ plot",
+    locations = cells_column_labels(columns = id)
+  ) |> 
+  tab_footnote(
+    footnote = "μmol/g (model residual)",
+    locations = cells_column_labels(columns = Isoleucine)
+  ) |> 
+  tab_options(table.background.color = "lavenderblush3", 
+              table.font.size = "12px", 
+              table.font.style = "oblique") |> 
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+      ),
+    locations = cells_body(
+      columns = Isoleucine
+    )
+  )
+```
+
+## Model - 2nd Pass
+
+Here the model is refitted to the data excluding the outlier values detected in the previous step. The model formula is the same with the only difference that now 3 knots are used for the spline transformations instead of 4 previous, since 3 knots gave a better global regression significance (p-value = `0.0112`). 
+
+### Residuals
+
+```{r}
+#| label: fig-Isoleucine-refit-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed)." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Isoleucine_mod_refit$outliersPlot
+```
+
+```{r}
+#| label: fig-Isoleucine-refit-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Isoleucine_mod_refit), resid_Isoleucine_mod_refit, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Isoleucine-refit-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Isoleucine_mod_refit), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 5, nx = NA, col = "black")
+# main = expression(paste("Proportion of overall model ", R^2, " that is due to each predictor"))
+# https://library.virginia.edu/data/articles/mathematical-annotation-in-r
+# With margin = "partial R2" I believe if you add up all main effect partial R2s and then subtract all interaction effect partial R2s, you get the total R2 as printed from the model object. 
+# ALso the sort does not match with the margin...
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Isoleucine_mod_refit 
+# copy-paste HTML then eval=FALSE in chunk setttings
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Isoleucine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.0</td>
+<td style='padding-left:4ex; text-align: right;'>53.0</td>
+<td style='padding-left:4ex; text-align: right;'>19.0</td>
+<td style='padding-left:4ex; text-align: right;'> 0.140000</td>
+<td style='padding-left:4ex; text-align: right;'>0.14600</td>
+<td style='padding-left:4ex; text-align: right;'>-0.147800</td>
+<td style='padding-left:4ex; text-align: right;'> 0.42790</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.8</td>
+<td style='padding-left:4ex; text-align: right;'>29.3</td>
+<td style='padding-left:4ex; text-align: right;'> 6.5</td>
+<td style='padding-left:4ex; text-align: right;'> 0.096760</td>
+<td style='padding-left:4ex; text-align: right;'>0.04975</td>
+<td style='padding-left:4ex; text-align: right;'>-0.001349</td>
+<td style='padding-left:4ex; text-align: right;'> 0.19490</td>
+</tr>
+<tr>
+<td style='text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 2.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.292800</td>
+<td style='padding-left:4ex; text-align: right;'>0.10700</td>
+<td style='padding-left:4ex; text-align: right;'>-0.503900</td>
+<td style='padding-left:4ex; text-align: right;'>-0.08180</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Thyroidism:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 2.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.104700</td>
+<td style='padding-left:4ex; text-align: right;'>0.11710</td>
+<td style='padding-left:4ex; text-align: right;'>-0.335600</td>
+<td style='padding-left:4ex; text-align: right;'> 0.12630</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Other:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 3.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.026270</td>
+<td style='padding-left:4ex; text-align: right;'>0.13670</td>
+<td style='padding-left:4ex; text-align: right;'>-0.243300</td>
+<td style='padding-left:4ex; text-align: right;'> 0.29580</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Blood:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 4.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.001275</td>
+<td style='padding-left:4ex; text-align: right;'>0.17790</td>
+<td style='padding-left:4ex; text-align: right;'>-0.349600</td>
+<td style='padding-left:4ex; text-align: right;'> 0.35220</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Heart:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 5.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.331800</td>
+<td style='padding-left:4ex; text-align: right;'>0.18660</td>
+<td style='padding-left:4ex; text-align: right;'>-0.699800</td>
+<td style='padding-left:4ex; text-align: right;'> 0.03611</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Stomach:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 6.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.298500</td>
+<td style='padding-left:4ex; text-align: right;'>0.18380</td>
+<td style='padding-left:4ex; text-align: right;'>-0.661000</td>
+<td style='padding-left:4ex; text-align: right;'> 0.06398</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Depression:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'> 7.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.065230</td>
+<td style='padding-left:4ex; text-align: right;'>0.25170</td>
+<td style='padding-left:4ex; text-align: right;'>-0.431000</td>
+<td style='padding-left:4ex; text-align: right;'> 0.56150</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>chronic_disease_v3 --- Pain:None</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 8.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.369200</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.28170</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.186300</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.92470</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Isoleucine-refit-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Isoleucine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decrease on Isoleucine reference value of ", round(ddIsoleucine_refit$limits["Isoleucine"][2,]), " μmol/g (median)"), nb = 14)
+```
+
+## Model - 3rd Pass
+
+The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e. 14 df should be spent instead of the 16 from the model. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+
+* Estimate model performance in the original sample of size n 
+
+* Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample 
+
+* Apply the model obtained in the bootstrap sample to the original sample 
+
+* Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e. overfitting) 
+
+* Repeat the process many times (e.g. 300) and average over the repeats to obtain a final estimate of optimism for each measure 
+
+* Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Isoleucine_mod_refit_val, digits = 2, caption = "2nd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+2nd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>0.19</td>
+<td style='padding-left:3ex; text-align: center;'>0.06</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>294</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.28</td>
+<td style='padding-left:3ex; text-align: center;'>0.26</td>
+<td style='padding-left:3ex; text-align: center;'>0.3</td>
+<td style='padding-left:3ex; text-align: center;'>-0.04</td>
+<td style='padding-left:3ex; text-align: center;'>0.32</td>
+<td style='padding-left:3ex; text-align: center;'>294</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.23</td>
+<td style='padding-left:3ex; text-align: center;'>0.27</td>
+<td style='padding-left:3ex; text-align: center;'>0.18</td>
+<td style='padding-left:3ex; text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>0.14</td>
+<td style='padding-left:3ex; text-align: center;'>294</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.82</td>
+<td style='padding-left:3ex; text-align: center;'>-0.82</td>
+<td style='padding-left:3ex; text-align: center;'>0.82</td>
+<td style='padding-left:3ex; text-align: center;'>294</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.68</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.32</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.68</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>294</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model. 
+
+By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias. 
+
+```{r}
+#| label: fig-Isoleucine-refit-cal
+#| fig-cap: "Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Isoleucine_mod_refit_cal)
+```
+
+The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.  
+
+From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables, bmi, age and sex can be kept in a new model with less degree of freedom spending i.e. less overfitting the data. 
+
+Hence the model is refitted to the data with these just 3 covariates (Note: Situation might change when more data are collected and the model is refit).
+
+The model formula is: 
+
+`log(Isoleucine) ~ sex + rcs(age,4) + bmi + sex:rcs(age,4)`
+
+and in expanded form:
+
+```{r}
+noquote(reg_f_Isoleucine_refit2)
+```
+
+The model's reference values can be seen below in the row named `Adjust to`:
+
+```{r}
+options(width = 164)
+ddIsoleucine_refit  
+```
+
+### Residuals
+
+```{r}
+#| label: fig-Isoleucine-refit2-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers. Here the algorithm reports outliers due to its parameterization, however these are weak outliers since their deviation from the straight line is not large." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Isoleucine_mod_refit2$outliersPlot
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen. Since the model covariates are binary, there are four unique predictions, one for each combination of sex and supplements_flag category." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Isoleucine_mod_refit2), resid_Isoleucine_mod_refit2, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Isoleucine_mod_refit2), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 4, nx = NA, col = "black")
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Isoleucine_mod_refit2 
+# eval=FALSE after html copy-pasting below
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Isoleucine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.0</td>
+<td style='padding-left:4ex; text-align: right;'>53.0</td>
+<td style='padding-left:4ex; text-align: right;'>19.0</td>
+<td style='padding-left:4ex; text-align: right;'> 0.11860</td>
+<td style='padding-left:4ex; text-align: right;'>0.14110</td>
+<td style='padding-left:4ex; text-align: right;'>-0.159700</td>
+<td style='padding-left:4ex; text-align: right;'> 0.3968</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.8</td>
+<td style='padding-left:4ex; text-align: right;'>29.3</td>
+<td style='padding-left:4ex; text-align: right;'> 6.5</td>
+<td style='padding-left:4ex; text-align: right;'> 0.09597</td>
+<td style='padding-left:4ex; text-align: right;'>0.04919</td>
+<td style='padding-left:4ex; text-align: right;'>-0.001017</td>
+<td style='padding-left:4ex; text-align: right;'> 0.1930</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 2.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.31670</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.10470</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.523200</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.1102</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Isoleucine_mod_refit2, digits = 1, log = TRUE, main = paste0("% increase/decrease on Isoleucine reference value of ", round(ddIsoleucine_refit$limits["Isoleucine"][2,]), " μmol/g (median)"), nb = 4) # nb = 4 reduces the spacing between the CIs, looks better without it on the site
+```
+
+### Partial Dependence Plots
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot1
+#| fig-cap: "Linear effect of bmi. Isoleucine concentration levels can be seen to increase with increasing bmi." 
+#| fig-width: 8  
+
+ggplot(Predict(Isoleucine_mod_refit2, bmi, fun = exp))
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot2
+#| fig-cap: "Nonlinear effect of age. Age is seen to decrease the levels of Isoleucine concentration particularly for the below 30 and above 60 years subgroups."
+#| fig-width: 8 
+
+ggplot(Predict(Isoleucine_mod_refit2, age, fun = exp))
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot3
+#| fig-cap: "Effect of sex. Females have higher levels of Isoleucine concentration."
+#| fig-width: 8 
+
+ggplot(Predict(Isoleucine_mod_refit2, sex, fun = exp))
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot4
+#| fig-cap: "Simultaneous effects of bmi and age. Isoleucine concentration levels are seen to increase with increasing bmi and decreasing age."
+#| fig-width: 8  
+  
+# pred_intx1_Isoleucine is defined in workspace
+bplot(pred_intx1_Isoleucine, yhat ~ age + bmi, lfun = lattice::wireframe, zlab = "Isoleucine\n",  screen=list(z=120, x=-75), cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot5
+#| fig-cap: "Simultaneous effects of sex and age. Males are shown to have higher Isoleucine concentration levels at old age (above 60) compared to females."
+#| fig-width: 8  
+  
+# pred_intx2_Isoleucine is defined in workspace
+bplot(pred_intx2_Isoleucine, yhat ~ age + sex, lfun = lattice::wireframe, zlab = "Isoleucine\n",  screen=list(z=150, x=-75), ylabrot = 35, cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Isoleucine-refit2-var-partial-effects-plot6
+#| fig-cap: "Simultaneous effects of sex and bmi. As the bmi increases, Isoleucine concentration levels increase at a higher level for females than for males."
+#| fig-width: 8  
+  
+# pred_intx3_Isoleucine is defined in workspace
+bplot(pred_intx3_Isoleucine, yhat ~ bmi + sex, lfun = lattice::wireframe, zlab = "Isoleucine\n",  screen=list(z=150, x=-75), ylabrot = 35, cex.lab = 0.55, cex.adj = 0.6)
+```
+
+### Validation & Calibration 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Isoleucine_mod_refit2_val, digits = 2, caption = "3rd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+3rd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>0.05</td>
+<td style='padding-left:3ex; text-align: center;'>0.08</td>
+<td style='padding-left:3ex; text-align: center;'>0.01</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.29</td>
+<td style='padding-left:3ex; text-align: center;'>0.28</td>
+<td style='padding-left:3ex; text-align: center;'>0.3</td>
+<td style='padding-left:3ex; text-align: center;'>-0.03</td>
+<td style='padding-left:3ex; text-align: center;'>0.31</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.19</td>
+<td style='padding-left:3ex; text-align: center;'>0.22</td>
+<td style='padding-left:3ex; text-align: center;'>0.16</td>
+<td style='padding-left:3ex; text-align: center;'>0.06</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.65</td>
+<td style='padding-left:3ex; text-align: center;'>-0.65</td>
+<td style='padding-left:3ex; text-align: center;'>0.65</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.75</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.25</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.75</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+We note also that the successful number of resamples is 300 (i.e. the number of bootstrap samples that we have chosen to perform the validation). In contrast, the 2nd pass model did not use all of the 300 resamples due to divergence or singularity issues which occurred in 6 samples, and thus left 294 resamples to use for the validation. These divergence issues were due to reasons such as missing values, categories of the chronic_disease_v3 variable with a low frequency and the complexity of the model.  
+In addition this 3rd pass model has used only 215 individuals from the current pool of 308 due the many zero or non-detection cases in the data. 
+
+```{r}
+#| label: fig-Isoleucine-refit2-cal
+#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the left side where underestimation is the issue. On the right part overestimation can be observed that has not been eliminated in comparison to the 2nd pass model. This is perhaps due to the currently small sample size of 215 individuals upon which the models have been built." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Isoleucine_mod_refit2_cal)
+```
+
+### Dynamic Reference Intervals 
+
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only bmi, age and sex make a difference since the rest of the covariates are not used. 
+
+```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
+# new_dat defined in loaded workspace
+dynRI <- new_dat |>
+  nest(.by = id) |>
+  mutate(preds = map(data, function(df) predict_f(Isoleucine_mod_refit2, new_dat = df, conf_type = "mean"))) |>
+  unnest_wider(col = preds, names_repair = function(x) {
+    nam <- x
+    nam[3:4] <- paste0(nam[3:4], "RI")
+    nam
+  }) |>
+  select(-data) |>
+  inner_join(new_dat |> select(id, sex, age, bmi), by = "id") |>
+  mutate(across(where(is.double), ~ round(., 2)))
+
+dynRI
+```
+
+The RI for Isoleucine from Mayo Clinic Laboratories for ages above 18 years is less than 22 μmol/g of creatinine.
 
 # Leucine
 
