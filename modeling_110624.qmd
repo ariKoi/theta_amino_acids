@@ -32,7 +32,7 @@ fontsize: 15px
 ---
 
 ```{r}
-load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")          
+load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")           
 # source of object and function definitions are in file:
 # /Users/aristidiskoitsanos/Desktop/ari/metabolomics/biomic_aminoAcids_1.Rmd
 ```
@@ -47,7 +47,7 @@ library(rms) # maskings
 library(referenceIntervals)
 library(extremevalues)
 library(gt) # masked from ‘package:Hmisc’: html
-library(kableExtra) # masked from ‘package:dplyr’: group_rows       
+library(kableExtra) # masked from ‘package:dplyr’: group_rows        
 ```
 
 Data source: [Ref ranges - AAU file](https://docs.google.com/spreadsheets/d/1I5IUbS86slfxIObDiZYoIhut9WrKXKpE/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true)
@@ -2829,7 +2829,7 @@ Test for non-linear relationships between each covariate and the amino acid conc
 #| label: fig-Isoleucine-nonlinearities 
 #| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
 plot(spearman2(Isoleucine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datIsoleucine, p = 2, na.action = na.omit))
-abline(v = c(-0.01/2, 0.01/3), lty = "dashed")
+abline(v = c(-0.01/2, 0.01/2), lty = "dashed")
 grid(ny = 9, nx = NA, col = "black")
 ```
 
@@ -3454,7 +3454,681 @@ The RI for Isoleucine from Mayo Clinic Laboratories for ages above 18 years is l
 
 # Leucine
 
+## Model - 1st Pass
 
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Leucine-nonlinearities 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Leucine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datLeucine, p = 2, na.action = na.omit))
+abline(v = c(-0.01/2, 0.01/2), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Non-linearity evident in chronic_disease_v3, aerobics_activity, resistance_activity, bmi and age (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
+
+To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0519`) contained the following terms: 
+
+`log(Leucine) ~ rcs(age,4) + rcs(bmi,4) + log(aerobics_activity+1) + log(resistance_activity+1) + chronic_disease_v3 + rcs(age,4):rcs(bmi,4) + rcs(age,4):log(aerobics_activity+1) + rcs(age,4):log(resistance_activity+1) + rcs(age,4):chronic_disease_v3 + rcs(bmi,4):log(aerobics_activity+1) + rcs(bmi,4):log(resistance_activity+1) + log(aerobics_activity+1):log(resistance_activity+1)`
+
+Where the `:` symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 3 knots. 
+
+Since this is a 1st pass for the model, fairly complex and with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
+## Outlier analysis based on model residuals
+
+When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e. difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can't be explained well by the model (i.e. missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. 
+This is also appropriate in terms of developing a model that will be used for reference interval construction i.e. cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection. 
+
+```{r}
+#| label: fig-Leucine-resid-1stpass 
+#| fig-cap: "Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval." 
+
+thematic::thematic_off()      
+DescTools::Desc(resid_Leucine_mod, plotit = TRUE, digits = 2, main = "Residual Distribution - Leucine Model")
+```
+
+In comparison to the previous outlier analysis as seen [here](https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link), the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution. 
+
+@fig-Leucine-outliers shows a quantile-quantile plot where the quantiles of the model's residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs). 
+
+For the rest of the figures below (i.e. for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e. horizontal lines in plot). 
+
+```{r}
+#| label: fig-Leucine-outliers 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers." 
+
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Leucine_mod$outliersPlot
+```
+
+```{r}
+gt(out_resid_Leucine_mod$outliers) |> 
+  tab_header(
+    title = md("**Outliers**")
+  ) |>  
+  fmt_number(columns = Leucine) |> 
+  tab_footnote(
+    footnote = "Red coloured data points in above QQ plot",
+    locations = cells_column_labels(columns = id)
+  ) |> 
+  tab_footnote(
+    footnote = "μmol/g (model residual)",
+    locations = cells_column_labels(columns = Leucine)
+  ) |> 
+  tab_options(table.background.color = "lavenderblush3", 
+              table.font.size = "12px", 
+              table.font.style = "oblique") |> 
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+      ),
+    locations = cells_body(
+      columns = Leucine
+    )
+  )
+```
+
+## Model - 2nd Pass
+
+Here the model is refitted to the data excluding the strong outlier values detected in the previous step. The model formula is the same as the 1st pass. The global regression significance is characterized by a p-value of `0.0187`. 
+
+### Residuals
+
+```{r}
+#| label: fig-Leucine-refit-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed)." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Leucine_mod_refit$outliersPlot
+```
+
+```{r}
+#| label: fig-Leucine-refit-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Leucine_mod_refit), resid_Leucine_mod_refit, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Leucine-refit-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Leucine_mod_refit), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 12, nx = NA, col = "black")
+# main = expression(paste("Proportion of overall model ", R^2, " that is due to each predictor"))
+# https://library.virginia.edu/data/articles/mathematical-annotation-in-r
+# With margin = "partial R2" I believe if you add up all main effect partial R2s and then subtract all interaction effect partial R2s, you get the total R2 as printed from the model object. 
+# ALso the sort does not match with the margin...
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Leucine_mod_refit 
+# copy-paste HTML then eval=FALSE in chunk setttings
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Leucine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.00</td>
+<td style='padding-left:4ex; text-align: right;'> 53.00</td>
+<td style='padding-left:4ex; text-align: right;'> 19.00</td>
+<td style='padding-left:4ex; text-align: right;'> 0.380400</td>
+<td style='padding-left:4ex; text-align: right;'>0.1917</td>
+<td style='padding-left:4ex; text-align: right;'> 0.001882</td>
+<td style='padding-left:4ex; text-align: right;'>0.7589</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.78</td>
+<td style='padding-left:4ex; text-align: right;'> 29.33</td>
+<td style='padding-left:4ex; text-align: right;'>  6.55</td>
+<td style='padding-left:4ex; text-align: right;'> 0.020530</td>
+<td style='padding-left:4ex; text-align: right;'>0.1388</td>
+<td style='padding-left:4ex; text-align: right;'>-0.253600</td>
+<td style='padding-left:4ex; text-align: right;'>0.2947</td>
+</tr>
+<tr>
+<td style='text-align: left;'>aerobics_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; text-align: right;'> 0.041220</td>
+<td style='padding-left:4ex; text-align: right;'>0.1345</td>
+<td style='padding-left:4ex; text-align: right;'>-0.224400</td>
+<td style='padding-left:4ex; text-align: right;'>0.3068</td>
+</tr>
+<tr>
+<td style='text-align: left;'>resistance_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; text-align: right;'>450.00</td>
+<td style='padding-left:4ex; text-align: right;'>450.00</td>
+<td style='padding-left:4ex; text-align: right;'>-0.211600</td>
+<td style='padding-left:4ex; text-align: right;'>0.2790</td>
+<td style='padding-left:4ex; text-align: right;'>-0.762500</td>
+<td style='padding-left:4ex; text-align: right;'>0.3394</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Thyroidism:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  2.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.001054</td>
+<td style='padding-left:4ex; text-align: right;'>0.1462</td>
+<td style='padding-left:4ex; text-align: right;'>-0.289800</td>
+<td style='padding-left:4ex; text-align: right;'>0.2877</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Other:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  3.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.023540</td>
+<td style='padding-left:4ex; text-align: right;'>0.1884</td>
+<td style='padding-left:4ex; text-align: right;'>-0.395500</td>
+<td style='padding-left:4ex; text-align: right;'>0.3484</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Blood:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  4.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.080100</td>
+<td style='padding-left:4ex; text-align: right;'>1.3830</td>
+<td style='padding-left:4ex; text-align: right;'>-2.650000</td>
+<td style='padding-left:4ex; text-align: right;'>2.8100</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Heart:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  5.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.378600</td>
+<td style='padding-left:4ex; text-align: right;'>0.3634</td>
+<td style='padding-left:4ex; text-align: right;'>-0.338900</td>
+<td style='padding-left:4ex; text-align: right;'>1.0960</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Stomach:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  6.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.011090</td>
+<td style='padding-left:4ex; text-align: right;'>0.3870</td>
+<td style='padding-left:4ex; text-align: right;'>-0.753100</td>
+<td style='padding-left:4ex; text-align: right;'>0.7752</td>
+</tr>
+<tr>
+<td style='text-align: left;'>chronic_disease_v3 --- Depression:None</td>
+<td style='padding-left:4ex; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; text-align: right;'>  7.00</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'> 0.414500</td>
+<td style='padding-left:4ex; text-align: right;'>0.4004</td>
+<td style='padding-left:4ex; text-align: right;'>-0.376100</td>
+<td style='padding-left:4ex; text-align: right;'>1.2050</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>chronic_disease_v3 --- Pain:None</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>  8.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.881800</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>1.3060</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-1.696000</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>3.4600</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Leucine-refit-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Leucine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decrease on Leucine reference value of ", round(ddLeucine_refit$limits["Leucine"][2,]), " μmol/g (median)"), nb = 12)
+```
+
+## Model - 3rd Pass
+
+The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e. `15` df should be spent instead of the `59` from the model. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+
+* Estimate model performance in the original sample of size n 
+
+* Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample 
+
+* Apply the model obtained in the bootstrap sample to the original sample 
+
+* Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e. overfitting) 
+
+* Repeat the process many times (e.g. 300) and average over the repeats to obtain a final estimate of optimism for each measure 
+
+* Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Leucine_mod_refit_val, digits = 2, caption = "2nd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+2nd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.31</td>
+<td style='padding-left:3ex; text-align: center;'>0.48</td>
+<td style='padding-left:3ex; text-align: center;'>-76.58</td>
+<td style='padding-left:3ex; text-align: center;'>77.06</td>
+<td style='padding-left:3ex; text-align: center;'>-76.75</td>
+<td style='padding-left:3ex; text-align: center;'>16</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.17</td>
+<td style='padding-left:3ex; text-align: center;'>0.12</td>
+<td style='padding-left:3ex; text-align: center;'>18.53</td>
+<td style='padding-left:3ex; text-align: center;'>-18.41</td>
+<td style='padding-left:3ex; text-align: center;'>18.57</td>
+<td style='padding-left:3ex; text-align: center;'>16</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.29</td>
+<td style='padding-left:3ex; text-align: center;'>0.37</td>
+<td style='padding-left:3ex; text-align: center;'>0.11</td>
+<td style='padding-left:3ex; text-align: center;'>0.26</td>
+<td style='padding-left:3ex; text-align: center;'>0.04</td>
+<td style='padding-left:3ex; text-align: center;'>16</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>2.4</td>
+<td style='padding-left:3ex; text-align: center;'>-2.4</td>
+<td style='padding-left:3ex; text-align: center;'>2.4</td>
+<td style='padding-left:3ex; text-align: center;'>16</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.25</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.75</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.25</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>16</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model. 
+
+By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias. 
+
+```{r}
+#| label: fig-Leucine-refit-cal
+#| fig-cap: "Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Leucine_mod_refit_cal)
+```
+
+The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.  
+
+From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables age and resistance_activity are most important, with perhaps bmi and aerobics_activity included too. These variables can be kept in a new model with less degree of freedom spending i.e. less overfitting the data. 
+
+Hence the model is refitted to the data with these just 4 covariates (Note: Situation might change when more data are collected and the model is refit).
+
+The model formula is: 
+
+`log(Leucine) ~ rcs(age,4) + rcs(bmi,4) + log(resistance_activity+1) + rcs(age,4):log(resistance_activity+1) + log(aerobics_activity+1)`
+
+with a spending of `12` degrees of freedom.
+
+However, when examining the normal probability plot of this model's residuals, the following is observed:
+
+```{r}
+#| label: fig-Leucine-refit2-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers. At this stage of the analysis, the algorithm rtypically eports weak outliers due to its parameterization. However, two strong outliers can be seen on the far right of the plot. These are strong because their deviation from the straight line is much larger than the rest of the cases." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Leucine_mod_refit2$outliersPlot
+```
+
+There are two more strong outliers that remain. After removing these two data points, the model is then refit, with the same model formula as above and a global significance of `0.0021` (p-value).
+
+The model formula is: 
+
+`log(Leucine) ~ rcs(age,4) + rcs(bmi,4) + log(resistance_activity+1) + rcs(age,4):log(resistance_activity+1) + log(aerobics_activity+1)`
+
+and in expanded form:
+
+```{r}
+noquote(reg_f_Leucine_refit3)
+```
+
+The model's reference values can be seen below in the row named `Adjust to`:
+
+```{r}
+options(width = 164)
+ddLeucine_refit2  
+```
+
+### Residuals
+
+```{r}
+#| label: fig-Leucine-refit3-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers. Here the algorithm reports outliers due to its parameterization, however these are weak outliers since their deviation from the straight line is not large." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Leucine_mod_refit3$outliersPlot
+```
+
+```{r}
+#| label: fig-Leucine-refit3-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen. Since the model covariates are binary, there are four unique predictions, one for each combination of sex and supplements_flag category." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Leucine_mod_refit3), resid_Leucine_mod_refit3, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Leucine-refit3-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Leucine_mod_refit3), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 5, nx = NA, col = "black")
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Leucine_mod_refit3
+# eval=FALSE after html copy-pasting below
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Leucine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.00</td>
+<td style='padding-left:4ex; text-align: right;'> 53.00</td>
+<td style='padding-left:4ex; text-align: right;'> 19.00</td>
+<td style='padding-left:4ex; text-align: right;'> 0.14750</td>
+<td style='padding-left:4ex; text-align: right;'>0.09917</td>
+<td style='padding-left:4ex; text-align: right;'>-0.04798</td>
+<td style='padding-left:4ex; text-align: right;'> 0.34300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.72</td>
+<td style='padding-left:4ex; text-align: right;'> 29.37</td>
+<td style='padding-left:4ex; text-align: right;'>  6.65</td>
+<td style='padding-left:4ex; text-align: right;'> 0.09335</td>
+<td style='padding-left:4ex; text-align: right;'>0.08260</td>
+<td style='padding-left:4ex; text-align: right;'>-0.06948</td>
+<td style='padding-left:4ex; text-align: right;'> 0.25620</td>
+</tr>
+<tr>
+<td style='text-align: left;'>resistance_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; text-align: right;'>450.00</td>
+<td style='padding-left:4ex; text-align: right;'>450.00</td>
+<td style='padding-left:4ex; text-align: right;'>-0.29440</td>
+<td style='padding-left:4ex; text-align: right;'>0.12950</td>
+<td style='padding-left:4ex; text-align: right;'>-0.54970</td>
+<td style='padding-left:4ex; text-align: right;'>-0.03909</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>aerobics_activity</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 60.00</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.01490</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.06229</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.10790</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.13770</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Leucine-refit3-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Leucine_mod_refit3, digits = 1, log = TRUE, main = paste0("% increase/decrease on Leucine reference value of ", round(ddLeucine_refit2$limits["Leucine"][2,]), " μmol/g (median)"), nb = 5) # nb = 4 reduces the spacing between the CIs, looks better without it on the site
+```
+
+### Partial Dependence Plots
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot1
+#| fig-cap: "Linear effect of bmi. Leucine concentration levels can be seen to increase with increasing bmi." 
+#| fig-width: 8  
+
+ggplot(Predict(Leucine_mod_refit3, bmi, fun = exp))
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot2
+#| fig-cap: "Nonlinear effect of age. Age is seen to decrease the levels of Leucine concentration particularly for the below 30 years subgroup."
+#| fig-width: 8 
+
+ggplot(Predict(Leucine_mod_refit3, age, fun = exp))
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot3
+#| fig-cap: "Effect of resistance training. Leucine concentration decreases with increasing weekly duration of resistance training."
+#| fig-width: 8 
+
+ggplot(Predict(Leucine_mod_refit3, resistance_activity, fun = exp))
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot4
+#| fig-cap: "No particular effect of aerobics training on levels of Leucine concentration."
+#| fig-width: 8 
+
+ggplot(Predict(Leucine_mod_refit3, aerobics_activity, fun = exp))
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot5
+#| fig-cap: "Simultaneous effects of age and resistance_activity. Leucine concentration levels are seen to increase with increasing both age and weekly resistance training duration."
+#| fig-width: 8  
+  
+# pred_intx1_Leucine is defined in workspace
+bplot(pred_intx1_Leucine, yhat ~ age + resistance_activity, lfun = lattice::wireframe, zlab = "Leucine\n",  screen=list(z=120, x=-75), ylabrot = 12, cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot6
+#| fig-cap: "Simultaneous effects of age and bmi. Leucine concentration levels are seen to increase with decreasing age and increasing bmi."
+#| fig-width: 8  
+  
+# pred_intx2_Leucine is defined in workspace
+bplot(pred_intx2_Leucine, yhat ~ age + bmi, lfun = lattice::wireframe, zlab = "Leucine\n",  screen=list(z=150, x=-75), ylabrot = 35, cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Leucine-refit3-var-partial-effects-plot7
+#| fig-cap: "Simultaneous effects of bmi and resistance_activity. Leucine concentration levels are seen to increase with increasing bmi and decreasing weekly resistance training duration."
+#| fig-width: 8  
+  
+# pred_intx3_Leucine is defined in workspace
+bplot(pred_intx3_Leucine, yhat ~ bmi + resistance_activity, lfun = lattice::wireframe, zlab = "Leucine\n",  screen=list(z=120, x=-75), xlabrot = -35, ylabrot = 15, cex.lab = 0.55, cex.adj = 0.6)
+```
+
+### Validation & Calibration 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Leucine_mod_refit3_val, digits = 2, caption = "3rd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+3rd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.12</td>
+<td style='padding-left:3ex; text-align: center;'>0.16</td>
+<td style='padding-left:3ex; text-align: center;'>0.08</td>
+<td style='padding-left:3ex; text-align: center;'>0.08</td>
+<td style='padding-left:3ex; text-align: center;'>0.04</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.2</td>
+<td style='padding-left:3ex; text-align: center;'>0.19</td>
+<td style='padding-left:3ex; text-align: center;'>0.21</td>
+<td style='padding-left:3ex; text-align: center;'>-0.02</td>
+<td style='padding-left:3ex; text-align: center;'>0.22</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.18</td>
+<td style='padding-left:3ex; text-align: center;'>0.21</td>
+<td style='padding-left:3ex; text-align: center;'>0.16</td>
+<td style='padding-left:3ex; text-align: center;'>0.05</td>
+<td style='padding-left:3ex; text-align: center;'>0.14</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.72</td>
+<td style='padding-left:3ex; text-align: center;'>-0.72</td>
+<td style='padding-left:3ex; text-align: center;'>0.72</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.77</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.23</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.77</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+We note also that the successful number of resamples is 300 (i.e. the number of bootstrap samples that we have chosen to perform the validation). In contrast, the 2nd pass model did not use all of the 300 resamples due to divergence or singularity issues which occurred in 284 samples, and thus left only 16 resamples to use for the validation. These divergence issues were due to reasons such as missing values, categories of the chronic_disease_v3 variable with a low frequency and the complexity of the model.  
+In addition this 3rd pass model has used only 222 individuals from the current pool of 308 due the many zero or non-detection cases in the data. 
+
+```{r}
+#| label: fig-Leucine-refit3-cal
+#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the right side where overestimation is the issue. On the central-left part (between 2.9 and 3.1 predicted log scale) some underestimation can be observed that has not been eliminated in comparison to the 2nd pass model. This is perhaps due to the currently small sample size of 222 individuals upon which the model has been built." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Leucine_mod_refit3_cal)
+```
+
+### Dynamic Reference Intervals 
+
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only age, bmi, resistance_activity and aerobics_activity make a difference since the rest of the covariates are not used. 
+
+```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
+# new_dat defined in loaded workspace
+dynRI <- new_dat |>
+  nest(.by = id) |>
+  mutate(preds = map(data, function(df) predict_f(Leucine_mod_refit3, new_dat = df, conf_type = "mean"))) |>
+  unnest_wider(col = preds, names_repair = function(x) {
+    nam <- x
+    nam[3:4] <- paste0(nam[3:4], "RI")
+    nam
+  }) |>
+  select(-data) |>
+  inner_join(new_dat |> select(id, age, bmi, resistance_activity, aerobics_activity) |> rename(resistance = resistance_activity, aerobics = aerobics_activity), by = "id") |>
+  mutate(across(where(is.double), ~ round(., 2)))
+ 
+dynRI
+```
+
+The RI for Leucine from Mayo Clinic Laboratories for ages above 18 years is less than 51 μmol/g of creatinine.
 
 # Glutamine
 
