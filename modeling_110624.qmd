@@ -32,13 +32,13 @@ fontsize: 15px
 ---
 
 ```{r}
-load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")             
+load("/Users/aristidiskoitsanos/Desktop/ari/metabolomics/.RData")              
 # source of object and function definitions are in file:
 # /Users/aristidiskoitsanos/Desktop/ari/metabolomics/biomic_aminoAcids_1.Rmd
 ```
 
 ```{r}
-thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue")  
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue")   
 ```
 
 ```{r}
@@ -47,7 +47,7 @@ library(rms) # maskings
 library(referenceIntervals)
 library(extremevalues)
 library(gt) # masked from ‘package:Hmisc’: html
-library(kableExtra) # masked from ‘package:dplyr’: group_rows          
+library(kableExtra) # masked from ‘package:dplyr’: group_rows           
 ```
 
 Data source: [Ref ranges - AAU file](https://docs.google.com/spreadsheets/d/1I5IUbS86slfxIObDiZYoIhut9WrKXKpE/edit?usp=drive_link&ouid=116755605884143618266&rtpof=true&sd=true)
@@ -823,7 +823,7 @@ abline(v = c(-0.01, 0, 0.01), lty = "dashed")
 
 Non-linearity is evident in covariates `sex`, `aerobics_activity`, `age` (smaller $\rho^2$ with opposite sign), `bmi` (smaller $\rho^2$ with opposite sign) and `chronic_disease_v3` ($\rho^2$ with opposite sign).
 
-To capture non-linearities only interactions amongst these 4 variables will be considered in the model. Specifically, the model formula will contain the following terms or associations:
+To capture non-linearities, only interactions amongst these 4 variables will be considered in the model. Specifically, the model formula will contain the following terms or associations:
 
 `log(Alanine) ~ sex + age + sex:age + bmi + chronic_disease_v3 + age:chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + age:log(aerobics_activity+1) + chronic_disease_v3:log(aerobics_activity+1) + sex:bmi + bmi:log(aerobics_activity+1) + age:bmi + bmi:chronic_disease_v3 + bmi:supplements_flag + age:supplements_flag + sex:supplements_flag + sex:log(aerobics_activity+1)`
 
@@ -1437,7 +1437,7 @@ grid(ny = 9, nx = NA, col = "black")
 
 Non-linearity is evident in covariates `sex`, `resistance_activity`, `bmi` and `chronic_disease_v3`. However their $\rho^2$ values are very small, hence non-linearity strength is very low.
 
-To capture non-linearities only interactions amongst these 4 variables are considered in the model. Specifically, the model formula contains the following terms or associations:
+To capture non-linearities, only interactions amongst these 4 variables are considered in the model. Specifically, the model formula contains the following terms or associations:
 
 log(Valine) ~ sex + age + bmi + chronic_disease_v3 + supplements_flag + log(aerobics_activity+1) + log(resistance_activity+1) + sex:bmi + sex:log(resistance_activity+1) + log(resistance_activity+1):chronic_disease_v3 + log(resistance_activity+1):bmi
 
@@ -1780,7 +1780,7 @@ grid(ny = 9, nx = NA, col = "black")
 
 Non-linearity evident in bmi, resistance_activity (smaller $\rho^2$ with opposite sign), chronic_disease_v3 (smaller $\rho^2$ with opposite sign). Most rho values are relatively small though with bmi being the exception 
 
-To capture non linearities interactions amongst these 3 variables will be considered, as well as splines for bmi. Also age will be included as it has some linearity association: 
+To capture non linearities, interactions amongst these 3 variables will be considered, as well as splines for bmi. Also age will be included as it has some linearity association: 
 
 `log(Cysteine) ~ rcs(bmi, 4) + age + chronic_disease_v3 + log(resistance_activity+1) + log(resistance_activity+1):rcs(bmi, 4)`
 
@@ -2392,7 +2392,7 @@ grid(ny = 9, nx = NA, col = "black")
 Linearity is evident in `aerobics_activity` (relevant plot not shown). 
 Non-linearity is evident in covariates `age`, `resistance_activity`, `bmi` and `chronic_disease_v3`. However their $\rho^2$ values are very small, hence non-linearity strength is very low.
 
-To capture non-linearities only interactions amongst these 5 variables are considered in the model.
+To capture non-linearities, only interactions amongst these 5 variables are considered in the model.
 
 After different combinations of the covariates were tested in the model, the best model was the one including only aerobics_activity as the single covariate. This model had a global regression p-value of `0.078` (marginally significant). 
 
@@ -2835,7 +2835,7 @@ grid(ny = 9, nx = NA, col = "black")
 
 Non-linearity evident in chronic_disease_v3, age, sex, bmi and aerobics_activity (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
 
-To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0487`) contained the following terms: 
+To capture non linearities, interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0487`) contained the following terms: 
 
 `log(Isoleucine) ~ sex + rcs(age,3) + bmi + chronic_disease_v3 + sex:rcs(age,3)`
 
@@ -3468,7 +3468,7 @@ grid(ny = 9, nx = NA, col = "black")
 
 Non-linearity evident in chronic_disease_v3, aerobics_activity, resistance_activity, bmi and age (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
 
-To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0519`) contained the following terms: 
+To capture non linearities, interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0519`) contained the following terms: 
 
 `log(Leucine) ~ rcs(age,4) + rcs(bmi,4) + log(aerobics_activity+1) + log(resistance_activity+1) + chronic_disease_v3 + rcs(age,4):rcs(bmi,4) + rcs(age,4):log(aerobics_activity+1) + rcs(age,4):log(resistance_activity+1) + rcs(age,4):chronic_disease_v3 + rcs(bmi,4):log(aerobics_activity+1) + rcs(bmi,4):log(resistance_activity+1) + log(aerobics_activity+1):log(resistance_activity+1)`
 
@@ -4144,9 +4144,9 @@ abline(v = c(-0.01/2, 0.01/2), lty = "dashed")
 grid(ny = 9, nx = NA, col = "black")
 ```
 
-Non-linearity evident in in chronic_disease_v3, resistance_activity, sex, bmi (smaller $\rho^2$ with opposite sign) and age (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
+Non-linearity evident in chronic_disease_v3, resistance_activity, sex, bmi (smaller $\rho^2$ with opposite sign) and age (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
 
-To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0388`) contained the following terms: 
+To capture non linearities, interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0388`) contained the following terms: 
 
 `log(Glutamine) ~ sex + chronic_disease_v3 + log(resistance_activity+1) + rcs(bmi,4) + rcs(age,4) + sex:log(resistance_activity+1) + sex:rcs(bmi,4) + sex:rcs(age,4) + chronic_disease_v3:log(resistance_activity+1)`
 
@@ -4874,11 +4874,9 @@ abline(v = c(-0.01/2, 0.01/2), lty = "dashed")
 grid(ny = 9, nx = NA, col = "black")
 ```
 
-Non-linearity evident in in chronic_disease_v3, resistance_activity, sex, bmi (smaller $\rho^2$ with opposite sign) and age (smaller $\rho^2$ with opposite sign). Most $\rho^2$ values are relatively small.
-
 Non-linearity evident in chronic_disease_v3 (smaller $\rho^2$ with opposite sign), sex, bmi (smaller $\rho^2$), age (smaller $\rho^2$ with opposite sign) and aerobics_activity (smaller $\rho^2$ with opposite sign).
 
-To capture non linearities interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0216`) contained the following terms: 
+To capture non linearities, interactions amongst these 5 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = `0.0216`) contained the following terms: 
 
 `log(Glutamate) ~ sex + chronic_disease_v3 + rcs(bmi,3) + rcs(age,4) + log(aerobics_activity+1) + sex:rcs(bmi,3) + sex:log(aerobics_activity+1) + rcs(bmi,3):rcs(age,4) + rcs(age,4):log(aerobics_activity+1)`
 
@@ -5524,7 +5522,614 @@ The RI for Glutamate from Mayo Clinic Laboratories for ages above 18 years is le
 
 # Methionine
 
+## Model - 1st Pass
 
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Methionine-nonlinearities 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Methionine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datMethionine, p = 2, na.action = na.omit))
+abline(v = c(-0.01/3, 0.01/3), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Non-linearity evident in chronic_disease_v3, resistance_activity, supplements_flag, bmi, age and aerobics_activity. Most $\rho^2$ values are small.
+
+To capture non linearities, interactions amongst these 6 variables were considered without spline transformations. However, due to the above very low $\rho^2$ values and the lack of association with the Methionine concentration, it was difficult to obtain a model having global significance, even after testing various combinations of terms in the model. The model achieving the best global significance (p-value = `0.051`) contained the following terms: 
+
+`log(Methionine) ~ age + rcs(bmi,3) + age:rcs(bmi,3)`
+
+Where the `:` symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 3 knots. This model spends only 6 degrees of freedom. 
+
+Since this is a 1st pass for the model with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. 
+
+## Outlier analysis based on model residuals
+
+When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e. difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can't be explained well by the model (i.e. missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. 
+This is also appropriate in terms of developing a model that will be used for reference interval construction i.e. cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection. 
+
+```{r}
+#| label: fig-Methionine-resid-1stpass 
+#| fig-cap: "Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval." 
+
+thematic::thematic_off()      
+DescTools::Desc(resid_Methionine_mod, plotit = TRUE, digits = 2, main = "Residual Distribution - Methionine Model")
+```
+
+In comparison to the previous outlier analysis as seen [here](https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link), the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution. 
+
+@fig-Methionine-outliers shows a quantile-quantile plot where the quantiles of the model's residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs). 
+
+For the rest of the figures below (i.e. for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e. horizontal lines in plot). 
+
+```{r}
+#| label: fig-Methionine-outliers 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers." 
+
+# thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Methionine_mod$outliersPlot
+```
+
+Compared to other models built for the rest of the amino acids, in this case there is a greater number of strong outliers that has been detected i.e. 18 subjects. These are clearly visible in the previous plot and shown in the table below. 
+
+```{r}
+gt(out_resid_Methionine_mod$outliers) |> 
+  tab_header(
+    title = md("**Outliers**")
+  ) |>  
+  fmt_number(columns = Methionine) |> 
+  tab_footnote(
+    footnote = "Red coloured data points in above QQ plot",
+    locations = cells_column_labels(columns = id)
+  ) |> 
+  tab_footnote(
+    footnote = "μmol/g (model residual)",
+    locations = cells_column_labels(columns = Methionine)
+  ) |> 
+  tab_options(table.background.color = "lavenderblush3", 
+              table.font.size = "12px", 
+              table.font.style = "oblique") |> 
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+      ),
+    locations = cells_body(
+      columns = Methionine
+    )
+  )
+```
+
+## Model - 2nd Pass
+
+Here the model is refitted to the data excluding the strong outlier values detected in the previous step. Since the number of strong outliers is large, the model needs to be re-implemented and thus the model formula is not the same as the 1st pass. 
+
+A linear and non-linear association check is conducted again:
+
+Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e. with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation. 
+
+```{r}
+#| label: fig-Methionine-nonlinearities-2 
+#| fig-cap: "Spearman's test for assessing non-linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of non-linearity for that covariate." 
+plot(spearman2(Methionine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datMethionine_refit, p = 2, na.action = na.omit))
+abline(v = c(-0.01/3, 0.01/3), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Non-linearity evident in sex, supplements_flag and age. Most $\rho^2$ values are small.
+
+```{r}
+#| label: fig-Methionine-linearities-2 
+#| fig-cap: "Spearman's test for assessing linear relationships with the response. The further away from 0 the adjusted $\\rho^2$ score is, the higher the degree of linearity for that covariate." 
+plot(spearman2(Methionine ~ sex + age + bmi + chronic_disease_flag + chronic_disease_v3 + meds_flag + supplements_flag + aerobics_activity + resistance_activity, data = datMethionine_refit, p = 1, na.action = na.omit))
+abline(v = c(-0.01/3, 0.01/3), lty = "dashed")
+grid(ny = 9, nx = NA, col = "black")
+```
+
+Linearity is present in sex, resistance_activity, age, bmi and supplements_flag. 
+
+To capture non linearities, interactions amongst these variables were considered with spline transformations. The model achieving the best global significance (p-value = `0.0012`) and contained the following terms: 
+
+`log(Methionine) ~ sex + rcs(age,4) + rcs(bmi,3) + supplements_flag + log(resistance_activity+1) + sex:rcs(age,4) + sex:rcs(bmi,3) + sex:supplements_flag + sex:log(resistance_activity+1) + rcs(age,4):rcs(bmi,3) + rcs(age,4):supplements_flag + rcs(age,4):log(resistance_activity+1) + rcs(bmi,3):supplements_flag + rcs(bmi,3):log(resistance_activity+1) + supplements_flag:log(resistance_activity+1)`
+
+Where the `:` symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 3 or 4knots. This model spends 32 degrees of freedom i.e. too complex given the data size. 
+
+### Residuals
+
+```{r}
+#| label: fig-Methionine-refit-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed)." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Methionine_mod_refit$outliersPlot
+```
+
+```{r}
+#| label: fig-Methionine-refit-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be seen." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Methionine_mod_refit), resid_Methionine_mod_refit, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Methionine-refit-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Methionine_mod_refit), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 15, nx = NA, col = "black")
+abline(v = 0.1, lty = "dashed", col = "red")
+# main = expression(paste("Proportion of overall model ", R^2, " that is due to each predictor"))
+# https://library.virginia.edu/data/articles/mathematical-annotation-in-r
+# With margin = "partial R2" I believe if you add up all main effect partial R2s and then subtract all interaction effect partial R2s, you get the total R2 as printed from the model object. 
+# ALso the sort does not match with the margin...
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Methionine_mod_refit 
+# copy-paste HTML then eval=FALSE in chunk setttings
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Methionine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.0</td>
+<td style='padding-left:4ex; text-align: right;'> 53.0</td>
+<td style='padding-left:4ex; text-align: right;'> 19.0</td>
+<td style='padding-left:4ex; text-align: right;'> 0.08486</td>
+<td style='padding-left:4ex; text-align: right;'>0.14380</td>
+<td style='padding-left:4ex; text-align: right;'>-0.1990</td>
+<td style='padding-left:4ex; text-align: right;'> 0.36880</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.7</td>
+<td style='padding-left:4ex; text-align: right;'> 29.1</td>
+<td style='padding-left:4ex; text-align: right;'>  6.4</td>
+<td style='padding-left:4ex; text-align: right;'>-0.06711</td>
+<td style='padding-left:4ex; text-align: right;'>0.08255</td>
+<td style='padding-left:4ex; text-align: right;'>-0.2301</td>
+<td style='padding-left:4ex; text-align: right;'> 0.09588</td>
+</tr>
+<tr>
+<td style='text-align: left;'>resistance_activity</td>
+<td style='padding-left:4ex; text-align: right;'> 0.0</td>
+<td style='padding-left:4ex; text-align: right;'>450.0</td>
+<td style='padding-left:4ex; text-align: right;'>450.0</td>
+<td style='padding-left:4ex; text-align: right;'> 0.02033</td>
+<td style='padding-left:4ex; text-align: right;'>0.17140</td>
+<td style='padding-left:4ex; text-align: right;'>-0.3180</td>
+<td style='padding-left:4ex; text-align: right;'> 0.35870</td>
+</tr>
+<tr>
+<td style='text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; text-align: right;'>  2.0</td>
+<td style='padding-left:4ex; text-align: right;'></td>
+<td style='padding-left:4ex; text-align: right;'>-0.27340</td>
+<td style='padding-left:4ex; text-align: right;'>0.09941</td>
+<td style='padding-left:4ex; text-align: right;'>-0.4697</td>
+<td style='padding-left:4ex; text-align: right;'>-0.07713</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>supplements_flag --- Yes:No</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>  2.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.02245</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.10230</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.1796</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 0.22450</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Methionine-refit-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Methionine_mod_refit, digits = 1, log = TRUE, main = paste0("% increase/decrease on Methionine reference value of ", round(ddMethionine_refit$limits["Methionine"][2,]), " μmol/g (median)"), nb = 7)
+```
+
+## Model - 3rd Pass
+
+The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e. `13` df should be spent instead of the `32` from the model. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows [source](https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/):
+
+* Estimate model performance in the original sample of size n 
+
+* Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample 
+
+* Apply the model obtained in the bootstrap sample to the original sample 
+
+* Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e. overfitting) 
+
+* Repeat the process many times (e.g. 300) and average over the repeats to obtain a final estimate of optimism for each measure 
+
+* Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Methionine_mod_refit_val, digits = 2, caption = "2nd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+2nd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.27</td>
+<td style='padding-left:3ex; text-align: center;'>0.38</td>
+<td style='padding-left:3ex; text-align: center;'>0.06</td>
+<td style='padding-left:3ex; text-align: center;'>0.33</td>
+<td style='padding-left:3ex; text-align: center;'>-0.06</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.1</td>
+<td style='padding-left:3ex; text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>-0.05</td>
+<td style='padding-left:3ex; text-align: center;'>0.15</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.21</td>
+<td style='padding-left:3ex; text-align: center;'>0.26</td>
+<td style='padding-left:3ex; text-align: center;'>0.16</td>
+<td style='padding-left:3ex; text-align: center;'>0.09</td>
+<td style='padding-left:3ex; text-align: center;'>0.12</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.64</td>
+<td style='padding-left:3ex; text-align: center;'>-0.64</td>
+<td style='padding-left:3ex; text-align: center;'>0.64</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.59</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.41</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.59</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model. 
+
+By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias. 
+
+```{r}
+#| label: fig-Methionine-refit-cal
+#| fig-cap: "Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Methionine_mod_refit_cal)
+```
+
+From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like the variables age, bmi, and sex are most important. These variables can be kept in a new model with less degree of freedom spending i.e. less overfitting the data. 
+
+Hence the model is refitted to the data including various combinations of these 3 covariates, with the chosen model spending `16` degrees of freedom (still slightly overfitting) and having a global p-value equal to `0.0006`.(Note: Situation might change when more data are collected and the model is refit).
+
+The chosen model formula is: 
+
+`log(Methionine) ~ rcs(age,4) + sex + rcs(age,4):sex + rcs(age,4):rcs(bmi,3) + rcs(bmi,3)`
+
+The expanded form is not shown here due to the complexity of the term `rcs(age,4):rcs(bmi,3)`.
+
+```{r eval=FALSE}
+noquote(reg_f_Methionine_refit2)
+```
+
+The model's reference values can be seen below in the row named `Adjust to`:
+
+```{r}
+options(width = 164)
+ddMethionine_refit 
+```
+
+### Residuals
+
+```{r}
+#| label: fig-Methionine-refit2-resid-qq 
+#| fig-cap: "Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e. data outside of these thresholds are deemed outliers. Here the algorithm does not report any weak outliers due to its parameterization i.e. outliers whose deviation from the straight line is not large." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+out_resid_Methionine_mod_refit2$outliersPlot
+```
+
+```{r}
+#| label: fig-Methionine-refit2-resid-yhatVsResid
+#| fig-cap: "Plot of predictions vs model residuals. No obvious patterns can be observed." 
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(fitted(Methionine_mod_refit2), resid_Methionine_mod_refit2, xlab = "Predicted", ylab = "Model Residuals"); abline(h=0)  # yhat vs. r
+```
+
+### Variable Importance
+
+```{r}
+#| label: fig-Methionine-refit2-var-importance
+#| fig-cap: "Proportion of overall model $R^2$ that is due to each predictor. Large influence of the sex covariate. The rest of the covariates are currently kept in the model as with new data their impact might positively change." 
+#| fig-align: left 
+#| fig-width: 8   
+
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(anova(Methionine_mod_refit2), what = "proportion R2", main = "", sort = "ascending", margin = "") 
+grid(ny = 5, nx = NA, col = "black")
+```
+
+### Variable Effects
+
+```{r eval=FALSE}
+options(prType="html")
+s_Methionine_mod_refit2
+# eval=FALSE after html copy-pasting below
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='8' style='text-align: left;'>
+Effects          &emsp;&emsp;Response: <code>log(Methionine)</code></td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'></th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Low</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>High</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>&Delta;</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Effect</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>S.E.</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Lower 0.95</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;'>Upper 0.95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='padding-left:4ex; text-align: right;'>34.0</td>
+<td style='padding-left:4ex; text-align: right;'>53.0</td>
+<td style='padding-left:4ex; text-align: right;'>19.0</td>
+<td style='padding-left:4ex; text-align: right;'>-0.031860</td>
+<td style='padding-left:4ex; text-align: right;'>0.12240</td>
+<td style='padding-left:4ex; text-align: right;'>-0.2734</td>
+<td style='padding-left:4ex; text-align: right;'> 0.20960</td>
+</tr>
+<tr>
+<td style='text-align: left;'>bmi</td>
+<td style='padding-left:4ex; text-align: right;'>22.7</td>
+<td style='padding-left:4ex; text-align: right;'>29.1</td>
+<td style='padding-left:4ex; text-align: right;'> 6.4</td>
+<td style='padding-left:4ex; text-align: right;'> 0.005299</td>
+<td style='padding-left:4ex; text-align: right;'>0.05805</td>
+<td style='padding-left:4ex; text-align: right;'>-0.1092</td>
+<td style='padding-left:4ex; text-align: right;'> 0.11980</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>sex --- Male:Female</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 1.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'> 2.0</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'></td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.211300</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>0.07183</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.3530</td>
+<td style='padding-left:4ex; border-bottom: 2px solid grey; text-align: right;'>-0.06956</td>
+</tr>
+</tbody>
+</table>
+
+```{r}
+#| label: fig-Methionine-refit2-var-effects
+#| fig-cap: "The further away the central estimate and its corresponding intervals from unity the higher the variable's effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval." 
+#| fig-width: 12  
+
+thematic::thematic_off() 
+plot(s_Methionine_mod_refit2, digits = 1, log = TRUE, main = paste0("% increase/decrease on Methionine reference value of ", round(ddMethionine_refit$limits["Methionine"][2,]), " μmol/g (median)"), nb = 4) # nb = 4 reduces the spacing between the CIs, looks better without it on the site
+```
+
+### Partial Dependence Plots
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot1
+#| fig-cap: "Effect of sex. Methionine concentration levels can be seen to be higher on average in females than in males." 
+#| fig-width: 8  
+
+ggplot(Predict(Methionine_mod_refit2, sex, fun = exp))
+```
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot2
+#| fig-cap: "Non-Linear effect of age. Age is seen to decrease the levels of Methionine concentration on average."
+#| fig-width: 8 
+
+ggplot(Predict(Methionine_mod_refit2, age, fun = exp))
+```
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot4
+#| fig-cap: "Average effect of bmi on levels of Methionine concentration can be seen to have an increasing impact for bmi levels of 35 and above (not significantly though)."
+#| fig-width: 8 
+
+ggplot(Predict(Methionine_mod_refit2, bmi, fun = exp))
+```
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot5
+#| fig-cap: "Simultaneous effects of age and sex. Methionine concentration levels are seen to increase on average with decreasing both and particularly for females."
+#| fig-width: 8  
+  
+# pred_intx1_Methionine is defined in workspace
+bplot(pred_intx1_Methionine, yhat ~ age + sex, lfun = lattice::wireframe, zlab = "Methionine\n",  screen=list(z=120, x=-75), cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot6
+#| fig-cap: "Simultaneous effects of age and bmi. Methionine concentration levels are seen to increase on average with decreasing both bmi (less than 30) and age (less than 30)."
+#| fig-width: 8  
+  
+# pred_intx2_Methionine is defined in workspace
+bplot(pred_intx2_Methionine, yhat ~ age + bmi, lfun = lattice::wireframe, zlab = "Methionine\n",  screen=list(z=220, x=-75), cex.lab = 0.55, cex.adj = 0.6)
+```
+
+```{r}
+#| label: fig-Methionine-refit2-var-partial-effects-plot7
+#| fig-cap: "Simultaneous effects of bmi and sex. Methionine concentration levels are seen to increase on average especially for females."
+#| fig-width: 8  
+  
+# pred_intx3_Methionine is defined in workspace
+bplot(pred_intx3_Methionine, yhat ~ sex + bmi, lfun = lattice::wireframe, zlab = "Methionine\n",  screen=list(z=220, x=-75), cex.lab = 0.55, cex.adj = 0.6)
+```
+
+### Validation & Calibration 
+
+```{r eval=FALSE}
+# Run below once and then copy paste below. Once this is done put eval=FALSE for this chunk.
+# options(prType="html") 
+# options(width = 164) 
+rms:::html.validate(Methionine_mod_refit2_val, digits = 2, caption = "3rd pass model validation")
+```
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr><td colspan='7' style='text-align: left;'>
+3rd pass model validation</td></tr>
+<tr><th style='border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;'>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Original<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Training<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Test<br>Sample</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Optimism</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Corrected<br>Index</th>
+<th style='font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>$n$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>R-square</td>
+<td style='text-align: center;'>0.18</td>
+<td style='padding-left:3ex; text-align: center;'>0.23</td>
+<td style='padding-left:3ex; text-align: center;'>0.1</td>
+<td style='padding-left:3ex; text-align: center;'>0.14</td>
+<td style='padding-left:3ex; text-align: center;'>0.05</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>MSE</td>
+<td style='text-align: center;'>0.11</td>
+<td style='padding-left:3ex; text-align: center;'>0.11</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>-0.02</td>
+<td style='padding-left:3ex; text-align: center;'>0.13</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>$g$</td>
+<td style='text-align: center;'>0.17</td>
+<td style='padding-left:3ex; text-align: center;'>0.19</td>
+<td style='padding-left:3ex; text-align: center;'>0.14</td>
+<td style='padding-left:3ex; text-align: center;'>0.05</td>
+<td style='padding-left:3ex; text-align: center;'>0.12</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='text-align: left;'>Intercept</td>
+<td style='text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0</td>
+<td style='padding-left:3ex; text-align: center;'>0.41</td>
+<td style='padding-left:3ex; text-align: center;'>-0.41</td>
+<td style='padding-left:3ex; text-align: center;'>0.41</td>
+<td style='padding-left:3ex; text-align: center;'>300</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>Slope</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.73</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.27</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>0.73</td>
+<td style='padding-left:3ex; border-bottom: 2px solid grey; text-align: center;'>300</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+
+```{r}
+#| label: fig-Methionine-refit2-cal
+#| fig-cap: "Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that deviations have been reduced compared to the 2nd pass model, especially on the right side where the model is overestimating the actual concentration values." 
+#| fig-width: 10
+ 
+thematic::thematic_on(bg = "lavenderblush3", fg = "black", accent = "blue") 
+plot(Methionine_mod_refit2_cal)
+```
+
+### Dynamic Reference Intervals 
+
+The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only age, sex and bmi make a difference since the rest of the covariates are not used. 
+
+```{r}
+# options(width = 164) # printing all cols of new_dat i.e. even the ones not used in the model was not printing the age column name properly in the html output. So I kept only the columns that the model uses and then the age column name was displayed properly. This was an issue in the web hosting dedicated project:
+# /Users/aristidiskoitsanos/Desktop/ari/metabolomics/amino_acid_ref_range_web/amino_acid_ref_range_web.Rproj
+
+# new_dat defined in loaded workspace
+dynRI <- new_dat |>
+  nest(.by = id) |>
+  mutate(preds = map(data, function(df) predict_f(Methionine_mod_refit2, new_dat = df, conf_type = "mean"))) |>
+  unnest_wider(col = preds, names_repair = function(x) {
+    nam <- x
+    nam[3:4] <- paste0(nam[3:4], "RI")
+    nam
+  }) |>
+  select(-data) |>
+  inner_join(new_dat |> select(id, age, sex, bmi), by = "id") |>
+  mutate(across(where(is.double), ~ round(., 2)))
+
+dynRI  
+```
+
+The RI for Methionine from Mayo Clinic Laboratories for ages above 18 years is less than 39 μmol/g of creatinine.
 
 # Arginine
 
