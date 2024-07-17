@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-07-16">
+<meta name="dcterms.date" content="2024-07-17">
 
 <title>Theta Biomarkers - Modeling - Exploratory Data Analysis - Amino Acid Reference Intervals</title>
 <style>
@@ -365,7 +365,25 @@ window.Quarto = {
   <li><a href="#dynamic-reference-intervals-9" id="toc-dynamic-reference-intervals-9" class="nav-link" data-scroll-target="#dynamic-reference-intervals-9">Dynamic Reference Intervals</a></li>
   </ul></li>
   </ul></li>
-  <li><a href="#arginine" id="toc-arginine" class="nav-link" data-scroll-target="#arginine"><span class="header-section-number">11</span> Arginine</a></li>
+  <li><a href="#arginine" id="toc-arginine" class="nav-link" data-scroll-target="#arginine"><span class="header-section-number">11</span> Arginine</a>
+  <ul class="collapse">
+  <li><a href="#model---1st-pass-10" id="toc-model---1st-pass-10" class="nav-link" data-scroll-target="#model---1st-pass-10">Model - 1st Pass</a></li>
+  <li><a href="#model---2nd-pass-10" id="toc-model---2nd-pass-10" class="nav-link" data-scroll-target="#model---2nd-pass-10">Model - 2nd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-17" id="toc-residuals-17" class="nav-link" data-scroll-target="#residuals-17">Residuals</a></li>
+  <li><a href="#variable-importance-18" id="toc-variable-importance-18" class="nav-link" data-scroll-target="#variable-importance-18">Variable Importance</a></li>
+  <li><a href="#variable-effects-18" id="toc-variable-effects-18" class="nav-link" data-scroll-target="#variable-effects-18">Variable Effects</a></li>
+  </ul></li>
+  <li><a href="#model---3rd-pass-8" id="toc-model---3rd-pass-8" class="nav-link" data-scroll-target="#model---3rd-pass-8">Model - 3rd Pass</a>
+  <ul class="collapse">
+  <li><a href="#residuals-model-refit-1" id="toc-residuals-model-refit-1" class="nav-link" data-scroll-target="#residuals-model-refit-1">Residuals &amp; Model Refit</a></li>
+  <li><a href="#variable-importance-19" id="toc-variable-importance-19" class="nav-link" data-scroll-target="#variable-importance-19">Variable Importance</a></li>
+  <li><a href="#variable-effects-19" id="toc-variable-effects-19" class="nav-link" data-scroll-target="#variable-effects-19">Variable Effects</a></li>
+  <li><a href="#partial-dependence-plots-11" id="toc-partial-dependence-plots-11" class="nav-link" data-scroll-target="#partial-dependence-plots-11">Partial Dependence Plots</a></li>
+  <li><a href="#validation-calibration-10" id="toc-validation-calibration-10" class="nav-link" data-scroll-target="#validation-calibration-10">Validation &amp; Calibration</a></li>
+  <li><a href="#dynamic-reference-intervals-10" id="toc-dynamic-reference-intervals-10" class="nav-link" data-scroll-target="#dynamic-reference-intervals-10">Dynamic Reference Intervals</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#other-section" id="toc-other-section" class="nav-link" data-scroll-target="#other-section">Other Section</a></li>
   </ul>
 </nav>
@@ -386,7 +404,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">July 16, 2024</p>
+      <p class="date">July 17, 2024</p>
     </div>
   </div>
   
@@ -15941,7 +15959,7 @@ Figure&nbsp;182: Plot of predictions vs model residuals. No obvious patterns can
 <img src="modeling_110624_files/figure-html/fig-Methionine-refit2-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Methionine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;183: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor. Large influence of the sex covariate. The rest of the covariates are currently kept in the model as with new data their impact might positively change.
+Figure&nbsp;183: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
 </figcaption>
 </figure>
 </div>
@@ -16355,6 +16373,1655 @@ Figure&nbsp;191: Calibration plot for 3rd pass model. Deviation from the diagona
 </section>
 <section id="arginine" class="level1" data-number="11">
 <h1 data-number="11"><span class="header-section-number">11</span> Arginine</h1>
+<section id="model---1st-pass-10" class="level2">
+<h2 class="anchored" data-anchor-id="model---1st-pass-10">Model - 1st Pass</h2>
+<p>Test for non-linear relationships between each covariate and the amino acid concentration is executed below. This helps in deciding whether to model an association in a non-linear fashion i.e.&nbsp;with a polynomial term or a spline term or an interaction, or to just consider the covariates separately and without any special transformation.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-nonlinearities" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-nonlinearities-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-nonlinearities-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;192: Spearman’s test for assessing non-linear relationships with the response. The further away from 0 the adjusted <span class="math inline">\(\rho^2\)</span> score is, the higher the degree of non-linearity for that covariate.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Non-linearity evident in sex, resistance_activity, chronic_disease_v3 and age (smaller <span class="math inline">\(\rho^2\)</span> with opposite sign). Some linear association is present with bmi, hence this covariate is also considered for the model.</p>
+<p>To capture non linearities, interactions amongst these 6 variables will be considered, as well as spline transformations. The model achieving the best global significance (p-value = <code>0.0151</code>) contained the following terms:</p>
+<p><code>log(Arginine) ~ sex + rcs(bmi,4) + rcs(age,4) + log(resistance_activity+1) + supplements_flag + chronic_disease_v3 + rcs(bmi,4):supplements_flag + rcs(age,4):log(resistance_activity+1) + log(resistance_activity+1):supplements_flag</code></p>
+<p>Where the <code>:</code> symbol denotes the interaction between two variables and rcs denotes a restricted cubic spline transformation with 4 knots.</p>
+<p>Since this is a 1st pass for the model, fairly complex and with a view to detect outliers, more details and characteristics of the model are shown below when the 2nd pass is undertaken. ## Outlier analysis based on model residuals</p>
+<p>When assessing the residuals from the model fit using a normal probability plot, we see the presence of large residuals i.e.&nbsp;difference of the observed and predicted values. These residuals correspond to model predictions that produced larger errors than the bulk of the data. They are indicative of cases that can’t be explained well by the model (i.e.&nbsp;missing covariate information, prediction extrapolation from unseen by the model covariate values etc), and as such can be cast as outliers. This is also appropriate in terms of developing a model that will be used for reference interval construction i.e.&nbsp;cases foreign to the model should fall outside the reference interval and flagged both as inconclusive and for further inspection.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>------------------------------------------------------------------------------------------------------------------------------------------------------------------ 
+Residual Distribution - Arginine Model
+
+  length      n        NAs  unique    0s   mean  meanCI'
+     308    217         91     = n     0  -0.00   -0.12
+          70.5%      29.5%          0.0%           0.12
+                                                       
+     .05    .10        .25  median   .75    .90     .95
+   -1.30  -1.12      -0.53    0.00  0.58   1.05    1.39
+                                                       
+   range     sd      vcoef     mad   IQR   skew    kurt
+    5.80   0.87  -3.96e+15    0.80  1.11   0.09    0.78
+                                                       
+lowest : -2.46, -2.35, -2.18, -2.06, -1.92
+highest: 1.80, 1.93, 1.99, 2.24, 3.34
+
+' 95%-CI (classic)</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Arginine-resid-1stpass" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-resid-1stpass-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-resid-1stpass-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;193: Figure combining a histogram with a density plot, a boxplot and the plot of the empirical distribution function (ECDF). The scale for the x-axis is synchronized over all plots. The median can be found on the boxplot as also in the ecdf-plot. The maximum and the minimum value are tagged with a tiny vertical dash upon the ecdf-line. The mean is shown in the boxplot as grey cross, the grey bar is its confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>In comparison to the previous outlier analysis as seen <a href="https://drive.google.com/file/d/1oJFw9-542I8KJnnaQdFjSxOrhZqxV7fA/view?usp=drive_link">here</a>, the difference now is that the analysis is conducted on the model residuals, hence on values that are conditional on meta data (predictor variables) whereas previously the analysis was marginally or unconditionally executed with the only assumption being that of the amino acid concentration following a log-normal distribution.</p>
+<p><a href="#fig-Arginine-outliers" class="quarto-xref">Figure&nbsp;194</a> shows a quantile-quantile plot where the quantiles of the model’s residual values are matched to the ones predicted from a normal distribution. The diagonal line indicates the ideal fit. Data points marked in red denote outliers (also indicated in the table below each plot with their corresponding subject IDs).</p>
+<p>For the rest of the figures below (i.e.&nbsp;for other amino acids), the same outlier detection procedure is applied but with a different parameterization which controls the outlier detection thresholds (i.e.&nbsp;horizontal lines in plot).</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-outliers" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-outliers-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-outliers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;194: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div id="zrvkokzlgs" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#zrvkokzlgs table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#zrvkokzlgs thead, #zrvkokzlgs tbody, #zrvkokzlgs tfoot, #zrvkokzlgs tr, #zrvkokzlgs td, #zrvkokzlgs th {
+  border-style: none;
+}
+
+#zrvkokzlgs p {
+  margin: 0;
+  padding: 0;
+}
+
+#zrvkokzlgs .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: oblique;
+  background-color: #CDC1C5;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#zrvkokzlgs .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #CDC1C5;
+  border-bottom-width: 0;
+}
+
+#zrvkokzlgs .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #CDC1C5;
+  border-top-width: 0;
+}
+
+#zrvkokzlgs .gt_heading {
+  background-color: #CDC1C5;
+  text-align: center;
+  border-bottom-color: #CDC1C5;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_col_heading {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#zrvkokzlgs .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#zrvkokzlgs .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#zrvkokzlgs .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#zrvkokzlgs .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#zrvkokzlgs .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#zrvkokzlgs .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#zrvkokzlgs .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#zrvkokzlgs .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#zrvkokzlgs .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#zrvkokzlgs .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#zrvkokzlgs .gt_stub {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zrvkokzlgs .gt_stub_row_group {
+  color: #333333;
+  background-color: #CDC1C5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#zrvkokzlgs .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#zrvkokzlgs .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#zrvkokzlgs .gt_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zrvkokzlgs .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#zrvkokzlgs .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_grand_summary_row {
+  color: #333333;
+  background-color: #CDC1C5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zrvkokzlgs .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#zrvkokzlgs .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_footnotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zrvkokzlgs .gt_sourcenotes {
+  color: #333333;
+  background-color: #CDC1C5;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#zrvkokzlgs .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zrvkokzlgs .gt_left {
+  text-align: left;
+}
+
+#zrvkokzlgs .gt_center {
+  text-align: center;
+}
+
+#zrvkokzlgs .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#zrvkokzlgs .gt_font_normal {
+  font-weight: normal;
+}
+
+#zrvkokzlgs .gt_font_bold {
+  font-weight: bold;
+}
+
+#zrvkokzlgs .gt_font_italic {
+  font-style: italic;
+}
+
+#zrvkokzlgs .gt_super {
+  font-size: 65%;
+}
+
+#zrvkokzlgs .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#zrvkokzlgs .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#zrvkokzlgs .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#zrvkokzlgs .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#zrvkokzlgs .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#zrvkokzlgs .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#zrvkokzlgs .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_heading">
+<th colspan="2" class="gt_heading gt_title gt_font_normal gt_bottom_border"><strong>Outliers</strong></th>
+</tr>
+<tr class="odd gt_col_headings">
+<th id="Subject id<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>1</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">Subject id<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+<th id="Arginine<span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;><sup>2</sup></span>" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Arginine<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span></th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_center" headers="id">KOTINI</td>
+<td class="gt_row gt_right" headers="Arginine" style="color: #FF0000">3.34</td>
+</tr>
+</tbody><tfoot class="gt_footnotes">
+<tr class="odd">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> Red coloured data points in above QQ plot</td>
+</tr>
+<tr class="even">
+<td colspan="2" class="gt_footnote"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>2</sup></span> μmol/g (model residual)</td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="model---2nd-pass-10" class="level2">
+<h2 class="anchored" data-anchor-id="model---2nd-pass-10">Model - 2nd Pass</h2>
+<p>Here the model is refitted to the data excluding the strong outlier value detected in the previous step. The model formula is the same as the 1st pass. The global regression significance is characterized by a p-value of <code>0.0086</code>.</p>
+<section id="residuals-17" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-17">Residuals</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;195: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed weak outliers (the strong ones detected by the 1st pass model have been removed).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;196: Plot of predictions vs model residuals. No obvious patterns can be seen.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-18" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-18">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;197: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-18" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-18">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Arginine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+bmi
+</td>
+<td style="padding-left:4ex; text-align: right;">
+22.8
+</td>
+<td style="padding-left:4ex; text-align: right;">
+29.25
+</td>
+<td style="padding-left:4ex; text-align: right;">
+6.45
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.07149
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1957
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.3146
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.457500
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+34.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+53.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+19.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.57610
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2176
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1468
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.005000
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+resistance_activity
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+540.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+540.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.49740
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2849
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-1.0590
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.064550
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+sex — Male:Female
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.26450
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1357
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.5322
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.003239
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+supplements_flag — Yes:No
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.45350
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2191
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.8857
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.021250
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Thyroidism:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.15260
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1962
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.2343
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.539500
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Other:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+3.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.17930
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2243
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.2630
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.621700
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Blood:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+4.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.24940
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2951
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.3327
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.831400
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Heart:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+5.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.07056
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.3059
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.6740
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.532900
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Stomach:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+6.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.22490
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.3051
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.3769
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.826700
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+chronic_disease_v3 — Depression:None
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+7.00
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.10230
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.4103
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.9116
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.706900
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+chronic_disease_v3 — Pain:None
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1.0
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+8.00
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.20760
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.4638
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.7072
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1.122000
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;198: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="model---3rd-pass-8" class="level2">
+<h2 class="anchored" data-anchor-id="model---3rd-pass-8">Model - 3rd Pass</h2>
+<p>The 2nd pass model uses too many degrees of freedom (df) in relation to the size of the data i.e.&nbsp;<code>14</code> df should be spent instead of the <code>24</code> from the model. This can be seen by conducting a validation and calibration analysis. Below are results from the validation analysis using bootstrapping as the resampling technique. The algorithm can be described as follows <a href="https://www.nicholas-ollberding.com/post/an-introduction-to-the-harrell-verse-predictive-modeling-using-the-hmisc-and-rms-packages/">source</a>:</p>
+<ul>
+<li><p>Estimate model performance in the original sample of size n</p></li>
+<li><p>Draw a bootstrap sample of the same size n and fit the model to the bootstrap sample</p></li>
+<li><p>Apply the model obtained in the bootstrap sample to the original sample</p></li>
+<li><p>Subtract the accuracy measure found in the bootstrap sample from the accuracy measure in the original sample - this is the estimate of optimism (i.e.&nbsp;overfitting)</p></li>
+<li><p>Repeat the process many times (e.g.&nbsp;300) and average over the repeats to obtain a final estimate of optimism for each measure</p></li>
+<li><p>Subtract that value from the observed/apparent accuracy measure to get the optimism corrected estimate</p></li>
+</ul>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+2nd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.18
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.26
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.06
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.2
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.02
+</td>
+<td style="padding-left:3ex; text-align: center;">
+293
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.7
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.62
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.79
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.17
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.87
+</td>
+<td style="padding-left:3ex; text-align: center;">
+293
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.44
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.53
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.34
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.19
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.25
+</td>
+<td style="padding-left:3ex; text-align: center;">
+293
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+1.07
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-1.07
+</td>
+<td style="padding-left:3ex; text-align: center;">
+1.07
+</td>
+<td style="padding-left:3ex; text-align: center;">
+293
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.64
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.36
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.64
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+293
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><p>From this table it can be seen that the optimism statistic which indicates the extent of model overfitting, for a variety of performance metrics has values that are large. Thus overfitting is present in the model.</p>
+<p>By calibrating the predicted values from the model to the observed ones, we also notice a good amount of deviation from the diagonal line (ideal model performance) after correcting for this overfitting or bias.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=216   Mean absolute error=0.094   Mean squared error=0.01572
+0.9 Quantile of absolute error=0.198</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Arginine-refit-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;199: Calibration plot for 2nd pass model. Deviation from the diagonal line after correcting for overfitting or bias.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The 2nd pass model also includes the chronic_disease_v3 variable which contains categories with low frequencies in the data. As a result the effect size estimate is accompanied by a very large confidence interval. This renders the estimate as non-trustworthy.</p>
+<p>From these results and also the variable importance plot seen previously as well as the analysis of variance results, it looks like all the considered variables are important, with <code>bmi</code> of less importance and with <code>chronic_disease_v3</code>’s inclusion being questionable due to high variance. These variables can be kept in a new model with less degree of freedom spending i.e.&nbsp;less overfitting the data.</p>
+<p>Hence the model is refitted to the data including various combinations of these covariates, but excluding the two mentioned above. The selected model spends just <code>10</code> degrees of freedom and has a global p-value equal to <code>0.0007</code>.(Note: Situation might change when more data are collected and the model is refit).</p>
+<p>The chosen model formula is:</p>
+<p><code>log(Arginine) ~ sex + rcs(age,4) + log(resistance_activity+1) + supplements_flag + rcs(age,4):log(resistance_activity+1)</code></p>
+<p>and in expanded form:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.154 - 0.3929*(sex==Male) - 0.0418*age + 7.48e-05*pmax(age - 20,0)^3 - 0.0003499*pmax(age - 38,0)^3 + 0.0003536*pmax(age - 48,0)^3 - 7.847e-05*pmax(age - 65.9,0)^3 - 0.423*resistance_activity - 0.1503*(supplements_flag==Yes) + resistance_activity*(0.01618*age - 2.909e-05*pmax(age - 20,0)^3 + 0.0001405*pmax(age - 38,0)^3 - 0.0001444*pmax(age - 48,0)^3 + 3.299e-05*pmax(age - 65.9,0)^3)</code></pre>
+</div>
+</div>
+<p>The model’s reference values can be seen below in the row named <code>Adjust to</code>:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>                   id    sex age   bmi chronic_disease_flag chronic_disease_v3 meds_flag supplements_flag aerobics_activity resistance_activity    Arginine
+Low:effect       &lt;NA&gt;   &lt;NA&gt;  34 22.80                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                 0                   0  11.6220889
+Adjust to       24486 Female  43 25.35                   No               None        No               No                 0                   0  20.3416053
+High:effect      &lt;NA&gt;   &lt;NA&gt;  53 29.25                 &lt;NA&gt;               &lt;NA&gt;      &lt;NA&gt;             &lt;NA&gt;                60                 540  38.7386845
+Low:prediction   1018 Female  11 16.60                   No               None        No               No                 0                   0   0.9887229
+High:prediction NAKOS   Male  80 46.20                  Yes               Pain       Yes              Yes               720                 540 228.3336064
+Low              1018 Female  11 16.60                   No               None        No               No                 0                   0   0.9887229
+High            NAKOS   Male  80 46.20                  Yes               Pain       Yes              Yes               720                 540 228.3336064
+
+Values:
+
+id : 1018 10985 1210 1219 1326 1338 1378 162 1623 1960 2024_1 2024_10 2024_11 2024_12 2024_2 2024_3 2024_4 2024_5 2024_6 2024_7 + 295 others 
+sex : Female Male 
+chronic_disease_flag : No Yes 
+chronic_disease_v3 : None Thyroidism Other Blood Heart Stomach Depression Pain 
+meds_flag : No Yes 
+supplements_flag : No Yes </code></pre>
+</div>
+</div>
+<section id="residuals-model-refit-1" class="level3">
+<h3 class="anchored" data-anchor-id="residuals-model-refit-1">Residuals &amp; Model Refit</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;200: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers. Here the algorithm does reports a single strong outlier i.e.&nbsp;outliers whose deviation from the straight line is large.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-resid-yhatVsResid" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-resid-yhatVsResid-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-resid-yhatVsResid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;201: Plot of predictions vs model residuals. No obvious patterns can be observed.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The strong outlier identified in <a href="#fig-Arginine-refit2-resid-qq" class="quarto-xref">Figure&nbsp;200</a> can be further removed from the analysis, and the same formula model is then refit. This leads to (unsurprisingly) a global p-value reduction to <code>0.0001</code>, and a residual qq plot without any outliers.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit3-resid-qq" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit3-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit3-resid-qq-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit3-resid-qq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;202: Normal probabibilty plot comparing quantiles of model residuals and the theoretical normal distribution. Vertical dashed lines indicate the central 95% limits of the normal distribution. Horizontal dashed lines indicate outlier detection thresholds i.e.&nbsp;data outside of these thresholds are deemed outliers. Here the algorithm does not reports any strong outliers i.e.&nbsp;outliers whose deviation from the straight line is large.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-importance-19" class="level3">
+<h3 class="anchored" data-anchor-id="variable-importance-19">Variable Importance</h3>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-importance" class="quarto-figure quarto-figure-left quarto-float anchored" data-fig-align="left">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-importance-1.png" class="img-fluid quarto-figure quarto-figure-left figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;203: Proportion of overall model <span class="math inline">\(R^2\)</span> that is due to each predictor.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-effects-19" class="level3">
+<h3 class="anchored" data-anchor-id="variable-effects-19">Variable Effects</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="8" style="text-align: left;">
+Effects   Response: <code>log(Arginine)</code>
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Low
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+High
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Δ
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Effect
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Lower 0.95
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Upper 0.95
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+age
+</td>
+<td style="padding-left:4ex; text-align: right;">
+34
+</td>
+<td style="padding-left:4ex; text-align: right;">
+53
+</td>
+<td style="padding-left:4ex; text-align: right;">
+19
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.5520
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1782
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2008
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.90310
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+resistance_activity
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0
+</td>
+<td style="padding-left:4ex; text-align: right;">
+540
+</td>
+<td style="padding-left:4ex; text-align: right;">
+540
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.4009
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.2183
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.8309
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.02906
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+sex — Male:Female
+</td>
+<td style="padding-left:4ex; text-align: right;">
+1
+</td>
+<td style="padding-left:4ex; text-align: right;">
+2
+</td>
+<td style="padding-left:4ex; text-align: right;">
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.3929
+</td>
+<td style="padding-left:4ex; text-align: right;">
+0.1156
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.6207
+</td>
+<td style="padding-left:4ex; text-align: right;">
+-0.16520
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+supplements_flag — Yes:No
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+1
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+2
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.1503
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.1184
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+-0.3836
+</td>
+<td style="padding-left:4ex; border-bottom: 2px solid grey; text-align: right;">
+0.08292
+</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-effects" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-effects-1.png" class="img-fluid figure-img" width="1152">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-effects-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;204: The further away the central estimate and its corresponding intervals from unity the higher the variable’s effect. Confidence intervals are 90%, 95% and 99%, with the dark blue denoting the 90% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="partial-dependence-plots-11" class="level3">
+<h3 class="anchored" data-anchor-id="partial-dependence-plots-11">Partial Dependence Plots</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-partial-effects-plot1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-partial-effects-plot1-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-partial-effects-plot1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;205: Effect of sex. Arginine concentration levels can be seen to be higher in females than in males.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-partial-effects-plot2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-partial-effects-plot2-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-partial-effects-plot2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;206: Non-Linear effect of age. Age is seen to decrease the levels of Arginine concentration in both age ranges of less than 35 years, as well as more than 55 years. Between 35 and 55 years there seems to be an increasing effect on Arginine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-partial-effects-plot3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-partial-effects-plot3-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-partial-effects-plot3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;207: Decreasing effect of resistance training on Arginine concentration levels (at a slow pace).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-partial-effects-plot4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-partial-effects-plot4-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-partial-effects-plot4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;208: No effect of supplements_flag on levels of Arginine concentration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-var-partial-effects-plot5" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-var-partial-effects-plot5-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-var-partial-effects-plot5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;209: Simultaneous effects of age and resistance_activity. Arginine concentration levels are seen to increase on average with increasing both age and weekly resistance training duration.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-calibration-10" class="level3">
+<h3 class="anchored" data-anchor-id="validation-calibration-10">Validation &amp; Calibration</h3>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<td colspan="7" style="text-align: left;">
+3rd pass model validation
+</td>
+</tr>
+<tr>
+<th style="border-bottom: 1px solid grey; font-weight: 900; border-top: 2px solid grey; text-align: center;">
+Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Original<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Training<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Test<br>Sample
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Optimism
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Corrected<br>Index
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+<span class="math inline">\(n\)</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+R-square
+</td>
+<td style="text-align: center;">
+0.12
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.16
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.09
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.07
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.05
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+MSE
+</td>
+<td style="text-align: center;">
+0.69
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.67
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.72
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.06
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.75
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<span class="math inline">\(g\)</span>
+</td>
+<td style="text-align: center;">
+0.36
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.39
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.31
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.08
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.28
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.58
+</td>
+<td style="padding-left:3ex; text-align: center;">
+-0.58
+</td>
+<td style="padding-left:3ex; text-align: center;">
+0.58
+</td>
+<td style="padding-left:3ex; text-align: center;">
+300
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+Slope
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+1
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.8
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.2
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+0.8
+</td>
+<td style="padding-left:3ex; border-bottom: 2px solid grey; text-align: center;">
+300
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding-top:2em;">
+</p><div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+n=249   Mean absolute error=0.095   Mean squared error=0.01487
+0.9 Quantile of absolute error=0.2</code></pre>
+</div>
+<div class="cell-output-display">
+<div id="fig-Arginine-refit2-cal" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-Arginine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="modeling_110624_files/figure-html/fig-Arginine-refit2-cal-1.png" class="img-fluid figure-img" width="960">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-Arginine-refit2-cal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;210: Calibration plot for 3rd pass model. Deviation from the diagonal line after correcting for overfitting or bias. It can be seen that performance is similar to the 2nd pass model. Main issue is the over-estimation occuring at the right side of the plot, and for larger predicted values.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="dynamic-reference-intervals-10" class="level3">
+<h3 class="anchored" data-anchor-id="dynamic-reference-intervals-10">Dynamic Reference Intervals</h3>
+<p>The following table shows an example of the construction of a 95% reference interval (RI) for each of four subjects with specific covariate values. For the 3rd pass model only age, sex, resistance_activity and supplements_flag make a difference since the rest of the covariates are not used.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div data-pagedtable="false">
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["lower95RI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["upper95RI"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["age"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["sex"],"name":[5],"type":["chr"],"align":["left"]},{"label":["resistance"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["supplements"],"name":[7],"type":["chr"],"align":["left"]}],"data":[{"1":"1","2":"5.88","3":"13.94","4":"48","5":"Male","6":"120","7":"Yes"},{"1":"2","2":"13.84","3":"23.23","4":"41","5":"Female","6":"30","7":"Yes"},{"1":"3","2":"6.91","3":"41.14","4":"9","5":"Female","6":"30","7":"No"},{"1":"4","2":"6.91","3":"41.14","4":"9","5":"Female","6":"30","7":"No"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p>The RI for Arginine from Mayo Clinic Laboratories for ages above 18 years is less than 114 μmol/g of creatinine.</p>
+</section>
+</section>
 </section>
 <section id="other-section" class="level1 unnumbered">
 <h1 class="unnumbered">Other Section</h1>
